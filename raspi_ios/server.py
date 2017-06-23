@@ -2,7 +2,6 @@
 import asyncio
 import websockets
 from .core import RaspiIOHandle
-from raspi_io.core import WS_PORT
 from urllib.parse import urlparse
 __all__ = ['RaspiIOServer']
 
@@ -11,8 +10,8 @@ class RaspiIOServer(object):
     def __init__(self):
         self.__route = dict()
 
-    def run(self, host):
-        handle = websockets.serve(self.router, host, WS_PORT)
+    def run(self, host, port):
+        handle = websockets.serve(self.router, host, port)
         asyncio.get_event_loop().run_until_complete(handle)
         asyncio.get_event_loop().run_forever()
 
