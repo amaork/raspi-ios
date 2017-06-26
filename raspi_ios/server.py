@@ -15,15 +15,15 @@ class RaspiIOServer(object):
         asyncio.get_event_loop().run_until_complete(handle)
         asyncio.get_event_loop().run_forever()
 
-    def register(self, handle):
-        if not issubclass(handle, RaspiIOHandle):
-            print("RaspiIOHandle TypeError:{0:s}".format(type(handle)))
+    def register(self, component):
+        if not issubclass(component, RaspiIOHandle):
+            print("Component TypeError:{0:s}".format(type(component)))
             return False
 
-        if handle.PATH in self.__route:
+        if component.PATH in self.__route:
             return True
 
-        self.__route[handle.PATH] = handle()
+        self.__route[component.PATH] = component()
         return True
 
     async def router(self, ws, path):

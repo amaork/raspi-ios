@@ -17,7 +17,7 @@ with open(version_module) as f:
 py_version = sys.version_info[:2]
 
 if py_version < (3, 5):
-    raise Exception("raspi_io requires Python >= 3.5")
+    raise Exception("raspi_ios requires Python >= 3.5")
 
 packages = [NAME]
 
@@ -37,6 +37,6 @@ setuptools.setup(
     ],
     packages=packages,
     extras_require={
-        ':python_version>="3.5"': ['asyncio', 'websockets', 'RPi.GPIO', 'raspi_io'],
+        ':python_version>="3.5"': ['asyncio', 'websockets', 'RPi.GPIO', 'raspi_io>=0.0.3'],
     },
 )

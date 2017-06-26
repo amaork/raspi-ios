@@ -15,12 +15,12 @@ class RaspiGPIOHandle(RaspiIOHandle):
         GPIO.setwarnings(False)
         self.__pwm_list = dict()
 
-    async def setmode(self, ws, data):
+    async def setmode(self, data):
         data = GPIOMode().loads(data)
         if isinstance(data, GPIOMode):
             GPIO.setmode(data.mode)
 
-    async def setup(self, ws, data):
+    async def setup(self, data):
         data = GPIOSetup().loads(data)
         if isinstance(data, GPIOSetup):
             if data.direction == GPIOSetup.IN:
@@ -28,18 +28,17 @@ class RaspiGPIOHandle(RaspiIOHandle):
             else:
                 GPIO.setup(data.channel, data.direction, data.pull_up_down, data.initial)
 
-    async def output(self, ws, data):
+    async def output(self, data):
         data = GPIOCtrl().loads(data)
         if isinstance(data, GPIOCtrl):
             GPIO.output(data.channel, data.value)
 
-    async def input(self, ws, data):
+    async def input(self, data):
         data = GPIOChannel().loads(data)
         if isinstance(data, GPIOChannel):
-            result = GPIOCtrl(channel=data.channel, value=GPIO.input(data.channel))
-            await ws.send(result.dumps())
+            return GPIOCtrl(channel=data.channel, value=GPIO.input(data.channel)).dumps()
 
-    async def pwm(self, ws, data):
+    async def pwm(self, data):
         pwm = GPIOSoftPWM().loads(data)
         if not isinstance(pwm, GPIOSoftPWM):
             return
@@ -52,7 +51,7 @@ class RaspiGPIOHandle(RaspiIOHandle):
         GPIO.setup(pwm.channel, GPIO.OUT)
         self.__pwm_list[pwm_uuid] = GPIO.PWM(pwm.channel, pwm.frequency)
 
-    async def pwm_ctrl(self, ws, data):
+    async def pwm_ctrl(self, data):
         ctrl = GPIOSoftPWMCtrl().loads(data)
         if not isinstance(ctrl, GPIOSoftPWMCtrl):
             return

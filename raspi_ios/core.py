@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
 import websockets
+from raspi_io.core import RaspiAckMsg
 __all__ = ['RaspiIOHandle']
 
 
@@ -8,6 +9,9 @@ class RaspiIOHandle(object):
     PATH = ""
 
     async def handle(self, ws, path):
+        nak = ""
+        ack = ""
+
         while True:
             try:
 
@@ -15,13 +19,18 @@ class RaspiIOHandle(object):
                 request = json.loads(data)
                 handle = self.__class__.__dict__.get(request.get('handle'))
                 if callable(handle):
-                    await handle(self, ws, data=data)
+                    ack = await handle(self, data=data)
                 else:
-                    print("{0:s} unknown request:{1:s}".format(path, request))
+                    nak = "{0:s} unknown request:{1:s}".format(path, request)
 
             except (TypeError, AttributeError, json.JSONDecodeError) as err:
-                print('{0:s} parse request error:{1:s}!'.format(path, err))
+                nak = 'Parse request error:{}!'.format(err)
+            except RuntimeError as err:
+                nak = 'Process request error:{}'.format(err)
+            except websockets.ConnectionClosed:
+                print("Websocket{} is closed".format(ws.remote_address))
                 break
-            except websockets.ConnectionClosed as err:
-                print("Websocket error:{}".format(err))
-                break
+            finally:
+                if ws.open:
+                    replay = RaspiAckMsg(ack=True, data=ack or "") if not nak else RaspiAckMsg(ack=False, data=nak)
+                    await ws.send(replay.dumps())
