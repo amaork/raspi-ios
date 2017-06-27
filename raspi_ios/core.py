@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
 import websockets
-from raspi_io.core import RaspiAckMsg
+from raspi_io.core import RaspiAckMsg, RaspiMsgDecodeError
 __all__ = ['RaspiIOHandle']
 
 
@@ -11,10 +11,10 @@ class RaspiIOHandle(object):
     async def handle(self, ws, path):
         nak = ""
         ack = ""
-
         while True:
             try:
 
+                ack = nak = ""
                 data = await ws.recv()
                 request = json.loads(data)
                 handle = self.__class__.__dict__.get(request.get('handle'))
@@ -23,7 +23,7 @@ class RaspiIOHandle(object):
                 else:
                     nak = "{0:s} unknown request:{1:s}".format(path, request)
 
-            except (TypeError, AttributeError, json.JSONDecodeError) as err:
+            except (RaspiMsgDecodeError, TypeError, AttributeError, json.JSONDecodeError) as err:
                 nak = 'Parse request error:{}!'.format(err)
             except RuntimeError as err:
                 nak = 'Process request error:{}'.format(err)

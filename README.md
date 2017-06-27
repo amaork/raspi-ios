@@ -15,7 +15,7 @@ Raspberry Pi websocket server, manage raspberry pi, and accept [raspi-io](https:
     # Create a raspi io server
     server = RaspiIOServer()
     
-    # Register gpio handl(GPIO, SoftPWM support)
+    # Register gpio handle(GPIO, SoftPWM support)
     server.register(RaspiGPIOHandle)
     
     # Running server

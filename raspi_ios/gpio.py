@@ -16,50 +16,73 @@ class RaspiGPIOHandle(RaspiIOHandle):
         self.__pwm_list = dict()
 
     async def setmode(self, data):
-        data = GPIOMode().loads(data)
-        if isinstance(data, GPIOMode):
+        try:
+
+            data = GPIOMode().loads(data)
             GPIO.setmode(data.mode)
 
+        except ValueError as err:
+            raise RuntimeError(err)
+
     async def setup(self, data):
-        data = GPIOSetup().loads(data)
-        if isinstance(data, GPIOSetup):
+        try:
+
+            data = GPIOSetup().loads(data)
             if data.direction == GPIOSetup.IN:
                 GPIO.setup(data.channel, data.direction, data.pull_up_down)
             else:
                 GPIO.setup(data.channel, data.direction, data.pull_up_down, data.initial)
 
+        except ValueError as err:
+            raise RuntimeError(err)
+
     async def output(self, data):
-        data = GPIOCtrl().loads(data)
-        if isinstance(data, GPIOCtrl):
+        try:
+
+            data = GPIOCtrl().loads(data)
             GPIO.output(data.channel, data.value)
 
+        except ValueError as err:
+            raise RuntimeError(err)
+
     async def input(self, data):
-        data = GPIOChannel().loads(data)
-        if isinstance(data, GPIOChannel):
+        try:
+
+            data = GPIOChannel().loads(data)
             return GPIOCtrl(channel=data.channel, value=GPIO.input(data.channel)).dumps()
 
+        except ValueError as err:
+            raise RuntimeError(err)
+
     async def pwm(self, data):
-        pwm = GPIOSoftPWM().loads(data)
-        if not isinstance(pwm, GPIOSoftPWM):
-            return
+        try:
 
-        # Get pwm instance uuid
-        pwm_uuid = str(uuid.uuid5(uuid.NAMESPACE_OID, "{0:d},{1:d},{2:d}".format(pwm.mode, pwm.channel, pwm.frequency)))
+            pwm = GPIOSoftPWM().loads(data)
 
-        # Create a pwm instance using uuid as key
-        GPIO.setmode(pwm.mode)
-        GPIO.setup(pwm.channel, GPIO.OUT)
-        self.__pwm_list[pwm_uuid] = GPIO.PWM(pwm.channel, pwm.frequency)
+            # Get pwm instance uuid
+            pwm_uuid = str(uuid.uuid5(uuid.NAMESPACE_OID, "{0:d},{1:d},{2:d}".format(
+                pwm.mode, pwm.channel, pwm.frequency)))
+
+            # Create a pwm instance using uuid as key
+            GPIO.setmode(pwm.mode)
+            GPIO.setup(pwm.channel, GPIO.OUT)
+            self.__pwm_list[pwm_uuid] = GPIO.PWM(pwm.channel, pwm.frequency)
+
+        except ValueError as err:
+            raise RuntimeError(err)
 
     async def pwm_ctrl(self, data):
-        ctrl = GPIOSoftPWMCtrl().loads(data)
-        if not isinstance(ctrl, GPIOSoftPWMCtrl):
-            return
+        try:
 
-        # Get pwm instance
-        pwm = self.__pwm_list.get(ctrl.uuid)
-        if not isinstance(pwm, GPIO.PWM):
-            return
+            ctrl = GPIOSoftPWMCtrl().loads(data)
 
-        # Start or stop pwm, duty == 0 stop pwm
-        pwm.start(ctrl.duty) if ctrl.duty else pwm.stop()
+            # Get pwm instance
+            pwm = self.__pwm_list.get(ctrl.uuid)
+            if not isinstance(pwm, GPIO.PWM):
+                raise RuntimeError("Do not found pwm:{}".format(ctrl.uuid))
+
+            # Start or stop pwm, duty == 0 stop pwm
+            pwm.start(ctrl.duty) if ctrl.duty else pwm.stop()
+
+        except ValueError as err:
+            raise RuntimeError(err)
