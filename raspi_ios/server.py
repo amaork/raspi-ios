@@ -30,6 +30,6 @@ class RaspiIOServer(object):
         url = urlparse(path)
         handle = self.__route.get(url.path[1:])
         if isinstance(handle, RaspiIOHandle):
-            await handle.handle(ws, path)
+            await handle.process(ws, path)
         else:
             await ws.close()
