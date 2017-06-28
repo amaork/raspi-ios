@@ -16,6 +16,11 @@ class RaspiIOServer(object):
         asyncio.get_event_loop().run_forever()
 
     def register(self, component):
+        """Register a component, to RaspiIOServer
+
+        :param component: RaspiIOHandle type object
+        :return:
+        """
         if not issubclass(component, RaspiIOHandle):
             print("Component TypeError:{0:s}".format(type(component)))
             return False
