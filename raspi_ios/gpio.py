@@ -2,7 +2,7 @@
 import uuid
 import RPi.GPIO as GPIO
 from .core import RaspiIOHandle
-from raspi_io.gpio import GPIOMode, GPIOSetup, GPIOCtrl, GPIOChannel, GPIOSoftPWM, GPIOSoftPWMCtrl
+from raspi_io.gpio import GPIOMode, GPIOSetup, GPIOCleanup, GPIOCtrl, GPIOChannel, GPIOSoftPWM, GPIOSoftPWMCtrl
 __all__ = ['RaspiGPIOHandle']
 
 
@@ -36,6 +36,15 @@ class RaspiGPIOHandle(RaspiIOHandle):
         except ValueError as err:
             raise RuntimeError(err)
 
+    async def cleanup(self, data):
+        try:
+
+            data = GPIOCleanup().loads(data)
+            GPIO.cleanup(data.channel)
+
+        except ValueError as err:
+            raise RuntimeError(err)
+
     async def output(self, data):
         try:
 
@@ -54,7 +63,7 @@ class RaspiGPIOHandle(RaspiIOHandle):
         except ValueError as err:
             raise RuntimeError(err)
 
-    async def pwm(self, data):
+    async def pwm_init(self, data):
         try:
 
             pwm = GPIOSoftPWM().loads(data)
