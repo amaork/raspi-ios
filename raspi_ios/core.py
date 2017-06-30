@@ -10,12 +10,12 @@ class RaspiIOHandle(object):
     CATCH_EXCEPTIONS = ()
 
     async def process(self, ws, path):
-        nak = ""
-        ack = ""
+        nak = None
+        ack = None
         while True:
             try:
 
-                ack = nak = ""
+                ack = nak = None
 
                 # Receive request
                 data = await ws.recv()
@@ -42,5 +42,10 @@ class RaspiIOHandle(object):
                 break
             finally:
                 if ws.open:
-                    replay = RaspiAckMsg(ack=True, data=ack or "") if not nak else RaspiAckMsg(ack=False, data=nak)
+                    # Generate ack msg
+                    if nak is not None:
+                        replay = RaspiAckMsg(ack=False, data=nak)
+                    else:
+                        replay = RaspiAckMsg(ack=True, data=ack if ack is not None else "")
+
                     await ws.send(replay.dumps())

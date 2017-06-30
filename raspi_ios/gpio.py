@@ -37,7 +37,7 @@ class RaspiGPIOHandle(RaspiIOHandle):
 
     async def input(self, data):
         data = GPIOChannel().loads(data)
-        return GPIOCtrl(channel=data.channel, value=GPIO.input(data.channel)).dumps()
+        return GPIO.input(data.channel)
 
     async def pwm_init(self, data):
         pwm = GPIOSoftPWM().loads(data)
