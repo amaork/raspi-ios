@@ -12,7 +12,6 @@ class RaspiQueryHandle(RaspiIOHandle):
 
     def __init__(self):
         super(RaspiIOHandle, self).__init__()
-        print("Success register:{}".format(self.PATH))
 
     @staticmethod
     def ls_query(path, keyword):

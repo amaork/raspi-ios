@@ -28,13 +28,14 @@ class RaspiIOServer(object):
         if component.PATH in self.__route:
             return True
 
-        self.__route[component.PATH] = component()
+        self.__route[component.PATH] = component
+        print("Success register:{}".format(component.PATH))
         return True
 
     async def router(self, ws, path):
         url = urlparse(path)
         handle = self.__route.get(url.path[1:])
-        if isinstance(handle, RaspiIOHandle):
-            await handle.process(ws, path)
+        if issubclass(handle, RaspiIOHandle):
+            await handle().process(ws, path)
         else:
             await ws.close()
