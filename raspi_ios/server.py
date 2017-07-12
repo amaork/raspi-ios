@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import asyncio
 import websockets
-from .core import RaspiIOHandle
+from .core import RaspiIOHandle, RaspiAckMsg
 from urllib.parse import urlparse
 __all__ = ['RaspiIOServer']
 
@@ -33,9 +33,19 @@ class RaspiIOServer(object):
         return True
 
     async def router(self, ws, path):
-        url = urlparse(path)
-        handle = self.__route.get(url.path[1:])
-        if issubclass(handle, RaspiIOHandle):
-            await handle().process(ws, path)
-        else:
-            await ws.close()
+        try:
+
+            url = urlparse(path)
+            handle = self.__route.get(url.path[1:])
+
+            if handle is None:
+                error = RaspiAckMsg(ack=False, data="Error: do not registered {!r}".format(path))
+                await ws.send(error.dumps())
+                return
+
+            if issubclass(handle, RaspiIOHandle):
+                await handle().process(ws, path)
+            else:
+                await ws.close()
+        except websockets.ConnectionClosed:
+            pass
