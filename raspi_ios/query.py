@@ -24,7 +24,7 @@ class RaspiQueryHandle(RaspiIOHandle):
         return ret.read().strip()
 
     async def query_hardware(self, data):
-        query = QueryHardware().loads(data)
+        query = QueryHardware(**data)
         if query.query == QueryHardware.HARDWARE:
             cmd = "cat /proc/cpuinfo"
             sn = self.awk_query(cmd, "Serial", 3)
@@ -40,7 +40,7 @@ class RaspiQueryHandle(RaspiIOHandle):
 
     async def query_device(self, data):
         path = "/dev"
-        query = QueryDevice().loads(data)
+        query = QueryDevice(**data)
         if query.query == QueryDevice.ETH:
             interfaces = self.awk_query("ifconfig -s -a", "\ ", 1).split("\n")[1:]
             interfaces.remove("lo")

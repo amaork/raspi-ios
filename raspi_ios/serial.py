@@ -25,7 +25,7 @@ class RaspiSerialHandle(RaspiIOHandle):
 
     async def init(self, data):
         # Parse request
-        setting = SerialInit().loads(data)
+        setting = SerialInit(**data)
 
         # Check if is occupied
         if setting.port in self.SERIAL_LIST:
@@ -42,7 +42,7 @@ class RaspiSerialHandle(RaspiIOHandle):
         self.SERIAL_LIST.append(self.__port.name)
 
     async def close(self, data):
-        req = SerialClose().loads(data)
+        req = SerialClose(**data)
         if self.__port.is_open:
             self.__port.flushInput()
             self.__port.flushOutput()
@@ -51,7 +51,7 @@ class RaspiSerialHandle(RaspiIOHandle):
 
     async def read(self, data):
         # Parse request
-        req = SerialRead().loads(data)
+        req = SerialRead(**data)
 
         # Return read data
         data = self.__port.read(req.size).decode("utf-8")
@@ -61,13 +61,13 @@ class RaspiSerialHandle(RaspiIOHandle):
         return data
 
     async def write(self, data):
-        req = SerialWrite().loads(data)
+        req = SerialWrite(**data)
 
         # Write data to serial
         return self.__port.write(req.data.encode("ascii"))
 
     async def flush(self, data):
-        req = SerialFlush().loads(data)
+        req = SerialFlush(**data)
 
         # Flush serial port
         if req.where == SerialFlush.IN:

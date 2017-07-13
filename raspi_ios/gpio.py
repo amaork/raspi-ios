@@ -52,11 +52,11 @@ class RaspiGPIOHandle(RaspiIOHandle):
                 self.__io_res.remove(gpio)
 
     async def setmode(self, data):
-        data = GPIOMode().loads(data)
+        data = GPIOMode(**data)
         GPIO.setmode(data.mode)
 
     async def setup(self, data):
-        data = GPIOSetup().loads(data)
+        data = GPIOSetup(**data)
 
         # Make sure, channel is not be occupied
         self.check_gpio(data.channel)
@@ -71,21 +71,20 @@ class RaspiGPIOHandle(RaspiIOHandle):
         self.register_gpio(data.channel)
 
     async def cleanup(self, data):
-        data = GPIOCleanup().loads(data)
+        data = GPIOCleanup(**data)
         GPIO.cleanup(data.channel)
         self.release_gpio(data.channel)
 
     async def output(self, data):
-        data = GPIOCtrl().loads(data)
+        data = GPIOCtrl(**data)
         GPIO.output(data.channel, data.value)
 
     async def input(self, data):
-        data = GPIOChannel().loads(data)
+        data = GPIOChannel(**data)
         return GPIO.input(data.channel)
 
     async def pwm_init(self, data):
-        pwm = GPIOSoftPWM().loads(data)
-
+        pwm = GPIOSoftPWM(**data)
         if not isinstance(pwm.channel, int):
             raise RuntimeError("Pwm channel type error")
 
@@ -100,7 +99,7 @@ class RaspiGPIOHandle(RaspiIOHandle):
         self.register_gpio(pwm.channel)
 
     async def pwm_ctrl(self, data):
-        ctrl = GPIOSoftPWMCtrl().loads(data)
+        ctrl = GPIOSoftPWMCtrl(**data)
 
         # Get pwm instance
         pwm = self.__pwm_list.get(ctrl.uuid)
