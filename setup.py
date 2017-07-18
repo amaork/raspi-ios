@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import sys
 import os.path
+import platform
 import setuptools
 
 NAME = 'raspi_ios'
@@ -14,10 +15,15 @@ version_module = os.path.join(root_dir, NAME, 'version.py')
 with open(version_module) as f:
     exec(f.read())
 
-py_version = sys.version_info[:2]
-
-if py_version < (3, 5):
+if sys.version_info[:2] < (3, 5):
     raise Exception("raspi_ios requires Python >= 3.5")
+
+if not platform.machine().startswith('arm'):
+    raise Exception('raspi_ios only support raspberry')
+
+if platform.system().lower() != 'linux':
+    raise Exception('raspi_ios only support linux')
+
 
 packages = [NAME]
 
@@ -37,6 +43,6 @@ setuptools.setup(
     ],
     packages=packages,
     extras_require={
-        ':python_version>="3.5"': ['asyncio', 'websockets', 'RPi.GPIO', 'pyserial', 'raspi_io>=0.0.8'],
+        ':python_version>="3.5"': ['asyncio', 'websockets', 'RPi.GPIO', 'pyserial', 'raspi_io>=0.0.9', 'pylibi2c'],
     },
 )

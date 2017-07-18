@@ -5,6 +5,7 @@ from raspi_ios import *
 
 if __name__ == "__main__":
     server = RaspiIOServer()
+    server.register(RaspiI2CHandle)
     server.register(RaspiGPIOHandle)
     server.register(RaspiQueryHandle)
     server.register(RaspiSerialHandle)
