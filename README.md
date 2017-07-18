@@ -4,13 +4,21 @@ Raspberry Pi websocket server, manage raspberry pi, and accept [raspi-io](https:
 
 ## Features
 
-- Support Python3.5+
+- Require Python3.5+
 
 - Support I2C ([pylibi2c](https://github.com/amaork/libi2c))
 
 - Support Serial ([pyserial](https://github.com/pyserial/pyserial))
 
 - Support GPIO, Software PWM ([RPi.GPIO](https://sourceforge.net/projects/raspberry-gpio-python/))
+
+## Installation
+
+1. First install Python3.5, refer: [Installing Python 3.5 on Raspbian](https://gist.github.com/BMeu/af107b1f3d7cf1a2507c9c6429367a3b)
+
+2. Second install requires: `asyncio`, `websockets`, `RPi.GPIO`, `pyserial`, `raspi_io`, `pylibi2c`
+
+3. Finally install `raspi_ios`: `sudo python3.5 setup.py install `
 
 ## Usage
 

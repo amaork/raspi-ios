@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
-import serial.tools.list_ports
+import glob
 from .core import RaspiIOHandle
 from raspi_io.query import QueryDevice, QueryHardware
 __all__ = ['RaspiQueryHandle']
@@ -23,6 +23,10 @@ class RaspiQueryHandle(RaspiIOHandle):
         ret = os.popen("{0:s} | grep {1:s} | awk '{{print ${2:d}}}'".format(cmd, keyword, location))
         return ret.read().strip()
 
+    @staticmethod
+    def glob_query(keyword):
+        return glob.glob(keyword)
+
     async def query_hardware(self, data):
         query = QueryHardware(**data)
         if query.query == QueryHardware.HARDWARE:
@@ -39,19 +43,19 @@ class RaspiQueryHandle(RaspiIOHandle):
             raise ValueError("Unknown hardware query")
 
     async def query_device(self, data):
-        path = "/dev"
         query = QueryDevice(**data)
         if query.query == QueryDevice.ETH:
             interfaces = self.awk_query("ifconfig -s -a", "\ ", 1).split("\n")[1:]
             interfaces.remove("lo")
             return interfaces
         elif query.query == QueryDevice.I2C:
-            return [os.path.join(path, dev) for dev in self.ls_query(path, "i2c-*").split("\n")]
+            return self.glob_query("/dev/i2c-*")
         elif query.query == QueryDevice.SPI:
-            return [os.path.join(path, dev) for dev in self.ls_query(path, "spidev*").split("\n")]
+            return self.glob_query("/dev/spidev*")
         elif query.query == QueryDevice.SERIAL:
-            return [port[0] for port in list(serial.tools.list_ports.comports())]
+            port_list = self.glob_query("/dev/ttyS*") + self.glob_query("/dev/ttyUSB*")
+            return port_list if query.option else list(filter(lambda port: not os.path.islink(port), port_list))
         elif query.query == QueryDevice.FILTER:
-            return [os.path.join(path, dev) for dev in self.ls_query(path, query.filter).split("\n")]
+            return self.glob_query(os.path.join("/dev", query.filter))
         else:
             raise ValueError("Unknown device query")
