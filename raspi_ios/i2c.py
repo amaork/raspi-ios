@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import glob
 import base64
 import pylibi2c
 from .core import RaspiIOHandle
@@ -18,6 +19,10 @@ class RaspiI2CHandle(RaspiIOHandle):
         bus = self.__device.get('bus')
         if isinstance(bus, int) and bus > 0:
             pylibi2c.close(self.__device['bus'])
+
+    @staticmethod
+    def get_nodes():
+        return glob.glob("/dev/i2c-*")
 
     async def open(self, data):
         # Parse request

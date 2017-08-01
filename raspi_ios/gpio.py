@@ -21,6 +21,10 @@ class RaspiGPIOHandle(RaspiIOHandle):
         GPIO.cleanup(self.__io_res)
         self.release_gpio(self.__io_res)
 
+    @staticmethod
+    def get_nodes():
+        return [RaspiGPIOHandle.PATH]
+
     def check_gpio(self, gpio):
         """Check if gpio is occupied
 

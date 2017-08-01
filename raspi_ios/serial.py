@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import glob
 import base64
 import serial
 from .core import RaspiIOHandle
@@ -23,6 +24,10 @@ class RaspiSerialHandle(RaspiIOHandle):
 
         if self.__port.name in self.SERIAL_LIST:
             self.SERIAL_LIST.remove(self.__port.name)
+
+    @staticmethod
+    def get_nodes():
+        return glob.glob("/dev/ttyS*") + glob.glob("/dev/ttyUSB*")
 
     async def init(self, data):
         # Parse request

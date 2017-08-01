@@ -20,6 +20,13 @@ Raspberry Pi websocket server, manage raspberry pi, and accept [raspi-io](https:
 
 3. Finally install `raspi_ios`: `sudo python3.5 setup.py install `
 
+## Default port
+
+`raspi_ios` default listen on port **`9876`**, you can change it like this:
+
+    from raspi_ios import RaspiIOServer
+    server = RaspiIOServer(port=xxxx)
+
 ## Usage
 
     from raspi_ios import RaspiIOServer, RaspiGPIOHandle, RaspiQueryHandle, RaspiSerialHandle
@@ -37,4 +44,4 @@ Raspberry Pi websocket server, manage raspberry pi, and accept [raspi-io](https:
     server.register(RaspiSerialHandle)
 
     # Running server
-    server.run("0.0.0.0", 12345)
+    server.run_forever()

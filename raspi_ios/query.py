@@ -14,6 +14,10 @@ class RaspiQueryHandle(RaspiIOHandle):
         super(RaspiIOHandle, self).__init__()
 
     @staticmethod
+    def get_nodes():
+        return [RaspiQueryHandle.PATH]
+
+    @staticmethod
     def ls_query(path, keyword):
         ret = os.popen("ls {0:s} | grep {1:s}".format(path, keyword))
         return ret.read().strip()

@@ -9,6 +9,14 @@ class RaspiIOHandle(object):
     PATH = ""
     CATCH_EXCEPTIONS = ()
 
+    @staticmethod
+    def get_nodes():
+        """Get support nodes
+
+        :return: should return a node list
+        """
+        pass
+
     async def process(self, ws, path):
         nak = None
         ack = None
