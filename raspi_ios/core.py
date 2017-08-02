@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import json
+import base64
 import websockets
 from raspi_io.core import RaspiAckMsg, RaspiMsgDecodeError
 __all__ = ['RaspiIOHandle']
@@ -16,6 +17,26 @@ class RaspiIOHandle(object):
         :return: should return a node list
         """
         pass
+
+    @staticmethod
+    def encode_data(data):
+        """Encode data to base64
+
+        :param data: data will encode
+        :return: data after encode
+        """
+        return str(base64.b64encode(bytes(data)))
+
+    @staticmethod
+    def decode_data(data):
+        """Decode data from base64
+
+        :param data: data receive from network
+        :return: data after decode
+        """
+        # Convert b64 string to bytes
+        # Python2 base64 after encode is str, python3 after encode is bytes()
+        return base64.b64decode(data[2:-1]) if data.startswith("b'") and data.endswith("'") else base64.b64decode(data)
 
     async def process(self, ws, path):
         nak = None

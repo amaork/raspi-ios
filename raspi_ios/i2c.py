@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import glob
-import base64
 import pylibi2c
 from .core import RaspiIOHandle
 from raspi_io.i2c import I2COpen, I2CClose, I2CRead, I2CWrite, I2CDevice
@@ -52,19 +51,11 @@ class RaspiI2CHandle(RaspiIOHandle):
         else:
             ret = pylibi2c.read(self.__device, req.addr, buf, req.size)
 
-        return str(base64.b64encode(buf)) if ret == req.size else None
+        return self.encode_data(buf) if ret == req.size else None
 
     async def write(self, data):
         req = I2CWrite(**data)
-        # Convert b64 string to bytes
-        # Python2 base64 after encode is str, python3 after encode is bytes()
-        if req.data.startswith("b'") and req.data.endswith("'"):
-            # Client is python3
-            data = base64.b64decode(req.data[2:-1])
-        else:
-            # Client is python2
-            data = base64.b64decode(req.data)
-
+        data = self.decode_data(req.data)
         if req.is_ioctl_write():
             ret = pylibi2c.ioctl_write(self.__device, req.addr, data, len(data))
         else:

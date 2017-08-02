@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import glob
-import base64
 import serial
 from .core import RaspiIOHandle
 from raspi_io.serial import SerialInit, SerialClose, SerialRead, SerialWrite, SerialFlush
@@ -64,17 +63,11 @@ class RaspiSerialHandle(RaspiIOHandle):
         if len(data) == 0:
             raise RuntimeError("timeout")
 
-        return str(base64.b64encode(data))
+        return self.encode_data(data)
 
     async def write(self, data):
         req = SerialWrite(**data)
-        # Convert base64 string to bytes
-        if req.data.startswith("b'") and req.data.endswith("'"):
-            # Client is python3
-            data = base64.b64decode(req.data[2:-1])
-        else:
-            # Client is python2
-            data = base64.b64decode(req.data)
+        data = self.decode_data(req.data)
 
         # Write data to serial
         return self.__port.write(data)

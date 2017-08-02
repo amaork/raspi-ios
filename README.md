@@ -8,6 +8,8 @@ Raspberry Pi websocket server, manage raspberry pi, and accept [raspi-io](https:
 
 - Support I2C ([pylibi2c](https://github.com/amaork/libi2c))
 
+- Support SPI ([Spidev](https://github.com/doceme/py-spidev))
+
 - Support Serial ([pyserial](https://github.com/pyserial/pyserial))
 
 - Support GPIO, Software PWM ([RPi.GPIO](https://sourceforge.net/projects/raspberry-gpio-python/))
@@ -18,7 +20,7 @@ Raspberry Pi websocket server, manage raspberry pi, and accept [raspi-io](https:
 
 2. Second install requires: `asyncio`, `websockets`, `RPi.GPIO`, `pyserial`, `raspi_io`, `pylibi2c`
 
-3. Finally install `raspi_ios`: `sudo python3.5 setup.py install `
+3. Finally install `raspi_ios`: `sudo python3.5 setup.py install ` or `sudo pip3.5 install git+https://github.com/amaork/raspi-ios.git`
 
 ## Default port
 
