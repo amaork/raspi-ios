@@ -17,7 +17,7 @@ class RaspiSettingHandle(RaspiIOHandle):
     async def get_port(self, data):
         req = RaspiWsPort(**data)
         if req.path in self.__setting__:
-            return self.__setting__[req.path].get(req.node)
+            return self.__setting__[req.path].get(req.node) or DEFAULT_PORT
 
         return DEFAULT_PORT
 
