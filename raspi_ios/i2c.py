@@ -2,22 +2,17 @@
 import glob
 import pylibi2c
 from .core import RaspiIOHandle
-from raspi_io.i2c import I2COpen, I2CClose, I2CRead, I2CWrite, I2CDevice
+from raspi_io.i2c import I2CRead, I2CWrite, I2CDevice
 __all__ = ['RaspiI2CHandle']
 
 
 class RaspiI2CHandle(RaspiIOHandle):
     PATH = __name__.split('.')[-1]
-    CATCH_EXCEPTIONS = (TypeError, ValueError, RuntimeError, AttributeError)
+    CATCH_EXCEPTIONS = (TypeError, ValueError, RuntimeError, AttributeError, IOError)
 
     def __init__(self):
         super(RaspiI2CHandle, self).__init__()
-        self.__device = dict()
-
-    def __del__(self):
-        bus = self.__device.get('bus')
-        if isinstance(bus, int) and bus > 0:
-            pylibi2c.close(self.__device['bus'])
+        self.__device = None
 
     @staticmethod
     def get_nodes():
@@ -25,40 +20,27 @@ class RaspiI2CHandle(RaspiIOHandle):
 
     async def open(self, data):
         # Parse request
-        req = I2COpen(**data)
-        device = I2CDevice(**req.device)
+        device = I2CDevice(**data).__dict__
+        device.pop("handle")
 
         # First open i2c bus
-        bus = pylibi2c.open(device.bus)
-        if bus == -1:
-            raise RuntimeError('Open i2c bus:{} error'.format(device.name))
-
-        # Save i2c device
-        self.__device = device.__dict__
-        self.__device['bus'] = bus
-
-    async def close(self, data):
-        req = I2CClose(**data)
-        bus = self.__device.get('bus')
-        if isinstance(bus, int) and bus > 0:
-            pylibi2c.close(self.__device['bus'])
+        self.__device = pylibi2c.I2CDevice(**device)
 
     async def read(self, data):
         req = I2CRead(**data)
-        buf = bytes(req.size)
         if req.is_ioctl_read():
-            ret = pylibi2c.ioctl_read(self.__device, req.addr, buf, req.size)
+            buf = self.__device.ioctl_read(req.addr, req.size)
         else:
-            ret = pylibi2c.read(self.__device, req.addr, buf, req.size)
+            buf = self.__device.read(req.addr, req.size)
 
-        return self.encode_data(buf) if ret == req.size else None
+        return self.encode_data(buf)
 
     async def write(self, data):
         req = I2CWrite(**data)
         data = self.decode_data(req.data)
         if req.is_ioctl_write():
-            ret = pylibi2c.ioctl_write(self.__device, req.addr, data, len(data))
+            ret = self.__device.ioctl_write(req.addr, data)
         else:
-            ret = pylibi2c.write(self.__device, req.addr, data, len(data))
+            ret = self.__device.write(req.addr, data)
 
         return ret
