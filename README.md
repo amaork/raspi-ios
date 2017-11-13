@@ -1,6 +1,6 @@
 Raspi-ios
 ========
-Raspberry Pi websocket server, manage raspberry pi, and accept [raspi-io](https://github.com/amaork/raspi-io) control
+Raspberry Pi [raspi-io](https://github.com/amaork/raspi-io) server
 
 ## Features
 
@@ -18,7 +18,7 @@ Raspberry Pi websocket server, manage raspberry pi, and accept [raspi-io](https:
 
 1. First install Python3.5, refer: [Installing Python 3.5 on Raspbian](https://gist.github.com/BMeu/af107b1f3d7cf1a2507c9c6429367a3b)
 
-2. Second install requires: `asyncio`, `websockets`, `RPi.GPIO`, `pyserial`, `raspi_io`, `pylibi2c`
+2. Second install requires: raspi_io: sudo pip3.5 install git+https://github.com/amaork/raspi-io.git
 
 3. Finally install `raspi_ios`: `sudo python3.5 setup.py install ` or `sudo pip3.5 install git+https://github.com/amaork/raspi-ios.git`
 
@@ -26,24 +26,39 @@ Raspberry Pi websocket server, manage raspberry pi, and accept [raspi-io](https:
 
 `raspi_ios` default listen on port **`9876`**, you can change it like this:
 
-    from raspi_ios import RaspiIOServer
-    server = RaspiIOServer(port=xxxx)
+```python
+
+from raspi_ios import RaspiIOServer
+server = RaspiIOServer(port=xxxx)
+```
 
 ## Usage
 
-    from raspi_ios import RaspiIOServer, RaspiGPIOHandle, RaspiQueryHandle, RaspiSerialHandle
+```python
 
-    # Create a raspi io server
-    server = RaspiIOServer()
+from raspi_ios import RaspiIOServer, RaspiGPIOHandle, RaspiQueryHandle, RaspiSerialHandle
 
-    # Register gpio handle (GPIO, SoftPWM support)
-    server.register(RaspiGPIOHandle)
+# Create a raspi io server
+server = RaspiIOServer()
 
-    # Register information query handle (raspi_io.Query)
-    server.register(RaspiQueryHandle)
+# Register gpio handle (GPIO, SoftPWM support)
+server.register(RaspiGPIOHandle)
 
-    # Register serial port handle (raspi_io.Serial)
-    server.register(RaspiSerialHandle)
+# Register information query handle (raspi_io.Query)
+server.register(RaspiQueryHandle)
 
-    # Running server
-    server.run_forever()
+# Register serial port handle (raspi_io.Serial)
+server.register(RaspiSerialHandle)
+
+# Running server
+server.run_forever()
+
+```
+    
+## Example
+
+```bash
+
+$ python3.5 -m raspi_ios.io_server
+
+```

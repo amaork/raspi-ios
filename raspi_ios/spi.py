@@ -8,7 +8,7 @@ __all__ = ['RaspiSPIHandle']
 
 class RaspiSPIHandle(RaspiIOHandle):
     PATH = __name__.split('.')[-1]
-    CATCH_EXCEPTIONS = (IOError, ValueError, RuntimeError, AttributeError)
+    CATCH_EXCEPTIONS = (IOError, ValueError, RuntimeError, IOError, AttributeError)
 
     def __init__(self):
         super(RaspiSPIHandle, self).__init__()
@@ -24,7 +24,7 @@ class RaspiSPIHandle(RaspiIOHandle):
     async def open(self, data):
         device = SPIOpen(**data)
         if device.device not in self.get_nodes():
-            raise RuntimeError("Open spi device error, no such device:{}".format(device.device))
+            raise IOError("Open spi device error, no such device:{}".format(device.device))
 
         # Get spi bus and dev from device name
         node = device.device.split("spidev")[-1]

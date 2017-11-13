@@ -38,6 +38,10 @@ class RaspiIOHandle(object):
         # Python2 base64 after encode is str, python3 after encode is bytes()
         return base64.b64decode(data[2:-1]) if data.startswith("b'") and data.endswith("'") else base64.b64decode(data)
 
+    @classmethod
+    def create_instance(cls):
+        return cls()
+
     async def process(self, ws, path):
         nak = None
         ack = None

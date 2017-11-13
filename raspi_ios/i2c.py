@@ -14,6 +14,10 @@ class RaspiI2CHandle(RaspiIOHandle):
         super(RaspiI2CHandle, self).__init__()
         self.__device = None
 
+    def __del__(self):
+        if isinstance(self.__device, pylibi2c.I2CDevice):
+            self.__device.close()
+
     @staticmethod
     def get_nodes():
         return glob.glob("/dev/i2c-*")

@@ -7,18 +7,19 @@ __all__ = ['RaspiGPIOHandle']
 
 
 class RaspiGPIOHandle(RaspiIOHandle):
-    IO_RES = list()
+    IO_RES = set()
     PATH = __name__.split('.')[-1]
-    CATCH_EXCEPTIONS = (ValueError, RuntimeError)
+    CATCH_EXCEPTIONS = (ValueError, TypeError, IOError, RuntimeError)
 
     def __init__(self):
         super(RaspiIOHandle, self).__init__()
         GPIO.setwarnings(False)
-        self.__io_res = list()
+        self.__io_res = set()
         self.__pwm_list = dict()
 
     def __del__(self):
-        GPIO.cleanup(self.__io_res)
+        [pwm.stop() for pwm in self.__pwm_list.values()]
+        GPIO.cleanup(list(self.__io_res))
         self.release_gpio(self.__io_res)
 
     @staticmethod
@@ -29,25 +30,25 @@ class RaspiGPIOHandle(RaspiIOHandle):
         """Check if gpio is occupied
 
         :param gpio: gpio number or gpio list
-        :return: occupied raise RuntimeError
+        :return: occupied raise IOError
         """
         if isinstance(gpio, (tuple, list)):
             for channel in gpio:
                 self.check_gpio(channel)
         else:
             if gpio in self.IO_RES and gpio not in self.__io_res:
-                raise RuntimeError("Channel:{} is occupied".format(gpio))
+                raise IOError("Channel:{} is occupied".format(gpio))
 
     def register_gpio(self, gpio):
         if isinstance(gpio, (tuple, list)):
             for chanel in gpio:
                 self.register_gpio(chanel)
         else:
-            self.IO_RES.append(gpio)
-            self.__io_res.append(gpio)
+            self.IO_RES.add(gpio)
+            self.__io_res.add(gpio)
 
     def release_gpio(self, gpio):
-        if isinstance(gpio, (tuple, list)):
+        if isinstance(gpio, (tuple, list, set)):
             for channel in list(gpio):
                 self.release_gpio(channel)
         else:
@@ -90,7 +91,7 @@ class RaspiGPIOHandle(RaspiIOHandle):
     async def pwm_init(self, data):
         pwm = GPIOSoftPWM(**data)
         if not isinstance(pwm.channel, int):
-            raise RuntimeError("Pwm channel type error")
+            raise TypeError("Pwm channel type error")
 
         # Get pwm instance uuid
         pwm_uuid = str(uuid.uuid5(uuid.NAMESPACE_OID, "{0:d},{1:d},{2:d}".format(pwm.mode, pwm.channel, pwm.frequency)))
