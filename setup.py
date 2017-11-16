@@ -44,6 +44,6 @@ setuptools.setup(
     packages=packages,
     extras_require={
         ':python_version>="3.5"': ['asyncio', 'websockets', 'websocket',
-                                   'spidev', 'RPi.GPIO', 'pyserial', 'raspi_io>=0.16', 'pylibi2c'],
+                                   'spidev', 'RPi.GPIO', 'pyserial', 'raspi_io>=0.17', 'pylibi2c'],
     },
 )

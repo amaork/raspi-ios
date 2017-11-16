@@ -9,4 +9,5 @@ if __name__ == "__main__":
     server.register(RaspiGPIOHandle)
     server.register(RaspiQueryHandle)
     server.register(RaspiSerialHandle)
+    server.register(RaspiTVServiceHandle)
     server.run_forever()
