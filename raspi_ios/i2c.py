@@ -22,7 +22,7 @@ class RaspiI2CHandle(RaspiIOHandle):
     def get_nodes():
         return glob.glob("/dev/i2c-*")
 
-    async def open(self, data):
+    async def open(self, ws, data):
         # Parse request
         device = I2CDevice(**data).__dict__
         device.pop("handle")
@@ -30,7 +30,7 @@ class RaspiI2CHandle(RaspiIOHandle):
         # First open i2c bus
         self.__device = pylibi2c.I2CDevice(**device)
 
-    async def read(self, data):
+    async def read(self, ws, data):
         req = I2CRead(**data)
         if req.is_ioctl_read():
             buf = self.__device.ioctl_read(req.addr, req.size)
@@ -39,7 +39,7 @@ class RaspiI2CHandle(RaspiIOHandle):
 
         return self.encode_data(buf)
 
-    async def write(self, data):
+    async def write(self, ws, data):
         req = I2CWrite(**data)
         data = self.decode_data(req.data)
         if req.is_ioctl_write():

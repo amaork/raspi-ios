@@ -21,7 +21,7 @@ class RaspiSPIHandle(RaspiIOHandle):
     def get_nodes():
         return glob.glob("/dev/spidev*")
 
-    async def open(self, data):
+    async def open(self, ws, data):
         device = SPIOpen(**data)
         if device.device not in self.get_nodes():
             raise IOError("Open spi device error, no such device:{}".format(device.device))
@@ -43,29 +43,29 @@ class RaspiSPIHandle(RaspiIOHandle):
         self.__spi.loop = device.loop
         self.__spi.mode = device.mode
 
-    async def close(self, data):
+    async def close(self, ws, data):
         req = SPIClose(**data)
         self.__spi.close()
 
-    async def read(self, data):
+    async def read(self, ws, data):
         req = SPIRead(**data)
         result = self.__spi.readbytes(req.size)
         return self.encode_data(result) if len(result) == req.size else None
 
-    async def write(self, data):
+    async def write(self, ws, data):
         req = SPIWrite(**data)
         data = self.decode_data(req.data)
         self.__spi.writebytes(list(data))
         return len(data)
 
-    async def xfer(self, data):
+    async def xfer(self, ws, data):
         req = SPIXfer(**data)
         write_data = self.decode_data(req.write_data)
         speed = req.speed * 1000 or self.__spi.max_speed_hz
         read_data = self.__spi.xfer(list(write_data) + [0] * req.read_size, speed, req.delay)
         return self.encode_data(bytes(read_data)[len(write_data):])
 
-    async def xfer2(self, data):
+    async def xfer2(self, ws, data):
         req = SPIXfer2(**data)
         write_data = self.decode_data(req.write_data)
         speed = req.speed * 1000 or self.__spi.max_speed_hz

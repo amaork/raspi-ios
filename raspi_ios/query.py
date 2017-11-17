@@ -31,7 +31,7 @@ class RaspiQueryHandle(RaspiIOHandle):
     def glob_query(keyword):
         return glob.glob(keyword)
 
-    async def query_hardware(self, data):
+    async def query_hardware(self, ws, data):
         query = QueryHardware(**data)
         if query.query == QueryHardware.HARDWARE:
             cmd = "cat /proc/cpuinfo"
@@ -46,7 +46,7 @@ class RaspiQueryHandle(RaspiIOHandle):
         else:
             raise ValueError("Unknown hardware query")
 
-    async def query_device(self, data):
+    async def query_device(self, ws, data):
         query = QueryDevice(**data)
         if query.query == QueryDevice.ETH:
             interfaces = self.awk_query("ifconfig -s -a", "\ ", 1).split("\n")[1:]

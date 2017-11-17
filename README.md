@@ -16,11 +16,13 @@ Raspberry Pi [raspi-io](https://github.com/amaork/raspi-io) server
 
 - Support TVService, HDMI video settings interface ([pylibmmal.TVService](https://github.com/amaork/pylibmmal))
 
+- Support MmalGraph, display graph on HDMI or LCD via Multi-Media Abstraction Layer ([pylibmmal.MmalGraph](https://github.com/amaork/pylibmmal))
+
 ## Installation
 
 1. First install Python3.5, refer: [Installing Python 3.5 on Raspbian](https://gist.github.com/BMeu/af107b1f3d7cf1a2507c9c6429367a3b)
 
-2. Second install requires: raspi_io: 
+2. Second install requires: [raspi_io](https://github.com/amaork/raspi-io): 
 
     ```bash
     $ sudo pip3.5 install git+https://github.com/amaork/raspi-io.git
@@ -68,7 +70,7 @@ server.register(RaspiSerialHandle)
 server.run_forever()
 ```
 
-## Example
+## Run raspi-io server
 
 ```bash
 $ python3.5 -m raspi_ios.io_server

@@ -62,7 +62,7 @@ class RaspiIOHandle(object):
 
                     # Catch Runtime error
                     try:
-                        ack = await handle(self, data=request)
+                        ack = await handle(self, ws=ws, data=request)
                     except self.CATCH_EXCEPTIONS as err:
                         nak = 'Process request error:{}'.format(err)
                 else:

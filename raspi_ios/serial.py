@@ -22,7 +22,7 @@ class RaspiSerialHandle(RaspiIOHandle):
     def get_nodes():
         return glob.glob("/dev/ttyS*") + glob.glob("/dev/ttyUSB*")
 
-    async def init(self, data):
+    async def init(self, ws, data):
         # Parse request
         setting = SerialInit(**data)
 
@@ -36,14 +36,14 @@ class RaspiSerialHandle(RaspiIOHandle):
         # Acquire an exclusive lock
         fcntl.flock(self.__port.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
 
-    async def close(self, data):
+    async def close(self, ws, data):
         req = SerialClose(**data)
         if self.__port.is_open:
             self.__port.flushInput()
             self.__port.flushOutput()
             self.__port.close()
 
-    async def read(self, data):
+    async def read(self, ws, data):
         # Parse request
         req = SerialRead(**data)
 
@@ -54,14 +54,14 @@ class RaspiSerialHandle(RaspiIOHandle):
 
         return self.encode_data(data)
 
-    async def write(self, data):
+    async def write(self, ws, data):
         req = SerialWrite(**data)
         data = self.decode_data(req.data)
 
         # Write data to serial
         return self.__port.write(data)
 
-    async def flush(self, data):
+    async def flush(self, ws, data):
         req = SerialFlush(**data)
 
         # Flush serial port
@@ -73,6 +73,6 @@ class RaspiSerialHandle(RaspiIOHandle):
             self.__port.flushInput()
             self.__port.flushOutput()
 
-    async def set_baudrate(self, data):
+    async def set_baudrate(self, ws, data):
         req = SerialBaudrate(**data)
         self.__port.baudrate = req.baudrate
