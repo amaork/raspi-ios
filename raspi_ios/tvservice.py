@@ -6,12 +6,12 @@ __all__ = ['RaspiTVServiceHandle']
 
 
 class RaspiTVServiceHandle(RaspiIOHandle):
+    __tv = TVService()
     PATH = __name__.split('.')[-1]
     CATCH_EXCEPTIONS = (TypeError, ValueError, RuntimeError)
 
     def __init__(self):
         super(RaspiTVServiceHandle, self).__init__()
-        self.__tv = TVService()
 
     @staticmethod
     def get_nodes():

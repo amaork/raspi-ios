@@ -8,12 +8,12 @@ __all__ = ['RaspiMmalGraphHandle']
 
 
 class RaspiMmalGraphHandle(RaspiIOHandle):
+    __graph = None
     PATH = __name__.split('.')[-1]
     CATCH_EXCEPTIONS = (TypeError, ValueError, RuntimeError)
 
     def __init__(self):
         super(RaspiMmalGraphHandle, self).__init__()
-        self.__graph = None
 
     def __del__(self):
         try:
