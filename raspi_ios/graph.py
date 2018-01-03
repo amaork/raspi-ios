@@ -10,7 +10,7 @@ __all__ = ['RaspiMmalGraphHandle']
 class RaspiMmalGraphHandle(RaspiIOHandle):
     __graph = None
     PATH = __name__.split('.')[-1]
-    CATCH_EXCEPTIONS = (TypeError, ValueError, RuntimeError)
+    CATCH_EXCEPTIONS = (TypeError, ValueError, RuntimeError, OSError)
 
     def __init__(self):
         super(RaspiMmalGraphHandle, self).__init__()
