@@ -3,7 +3,8 @@ import os
 import hashlib
 from pylibmmal import MmalGraph, LCD, HDMI
 from .core import RaspiIOHandle
-from raspi_io.graph import GraphInit, GraphClose, GraphHeader, GraphProperty
+from raspi_io.core import RaspiBinaryDataHeader
+from raspi_io.graph import GraphInit, GraphClose, GraphProperty
 __all__ = ['RaspiMmalGraphHandle']
 
 
@@ -33,7 +34,7 @@ class RaspiMmalGraphHandle(RaspiIOHandle):
 
     async def open(self, ws, data):
         graph_data = bytes()
-        header = GraphHeader(**data)
+        header = RaspiBinaryDataHeader(**data)
 
         # Receive graph binary data
         for i in range(header.slices):
