@@ -7,6 +7,7 @@ from .query import *
 from .serial import *
 from .server import *
 from .tvservice import *
+from .spi_flash import *
 
 __all__ = (
     core.__all__ +
@@ -17,5 +18,6 @@ __all__ = (
     query.__all__ +
     serial.__all__ +
     server.__all__ +
-    tvservice.__all__
+    tvservice.__all__ +
+    spi_flash.__all__
 )

@@ -2,7 +2,7 @@
 import glob
 import spidev
 from .core import RaspiIOHandle
-from raspi_io.spi import SPIOpen, SPIClose, SPIRead, SPIWrite, SPIXfer, SPIXfer2
+from raspi_io.spi import SPIDevice, SPIClose, SPIRead, SPIWrite, SPIXfer, SPIXfer2
 __all__ = ['RaspiSPIHandle']
 
 
@@ -22,7 +22,7 @@ class RaspiSPIHandle(RaspiIOHandle):
         return glob.glob("/dev/spidev*")
 
     async def open(self, ws, data):
-        device = SPIOpen(**data)
+        device = SPIDevice(**data)
         if device.device not in self.get_nodes():
             raise IOError("Open spi device error, no such device:{}".format(device.device))
 
@@ -42,10 +42,12 @@ class RaspiSPIHandle(RaspiIOHandle):
         self.__spi.no_cs = device.no_cs
         self.__spi.loop = device.loop
         self.__spi.mode = device.mode
+        return True
 
     async def close(self, ws, data):
         req = SPIClose(**data)
         self.__spi.close()
+        return True
 
     async def read(self, ws, data):
         req = SPIRead(**data)
