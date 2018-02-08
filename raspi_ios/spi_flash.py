@@ -58,6 +58,7 @@ class RaspiSPIFlashHandle(RaspiIOHandle):
         # Open spi device
         self.__spi.open(bus, dev)
         self.__spi.max_speed_hz = flash.speed * 1000
+        self.__spi.mode = ((flash.cpol & 1) << 1) | (flash.cpha & 1)
 
         # Update flash instruction and general info
         self.__flash_chip_size = flash.chip_size
