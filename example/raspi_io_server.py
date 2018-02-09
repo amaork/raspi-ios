@@ -15,4 +15,5 @@ if __name__ == "__main__":
         server.register(RaspiMmalGraphHandle)
         server.register(RaspiTVServiceHandle)
         server.register(RaspiSPIFlashHandle)
+        server.register(RaspiGPIOSPIFlashHandle)
         server.run_forever()
