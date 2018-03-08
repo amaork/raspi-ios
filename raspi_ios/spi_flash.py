@@ -3,12 +3,15 @@ import glob
 import spidev
 import hashlib
 from .core import RaspiIOHandle
-from raspi_io.spi_flash import SPIFlashInstruction, SPIFlashDevice
+from raspi_io.spi_flash import SPIFlashInstruction, SPIFlashDevice, SPIFlashProtection
 from raspi_io.core import get_binary_data_header, DATA_TRANSFER_BLOCK_SIZE, RaspiBinaryDataHeader
 __all__ = ['RaspiSPIFlashHandle']
 
 
 class RaspiSPIFlashHandle(RaspiIOHandle):
+    SRP0_BIT = 7
+    SRP1_BIT = 0
+    BLOCK_PROTECTION_BITS_MASK = 0x1c
     PATH = __name__.split('.')[-1]
     CATCH_EXCEPTIONS = (IOError, ValueError, RuntimeError, IOError, IndexError, AttributeError)
 
@@ -26,8 +29,20 @@ class RaspiSPIFlashHandle(RaspiIOHandle):
     def get_nodes():
         return glob.glob("/dev/spidev*")
 
-    def get_sr(self):
-        return self.__spi.xfer([self.__flash_instruction.read_sr, 0])[1]
+    def get_sr(self, index=1):
+        instruction = self.__flash_instruction.read_sr1 if index == 1 else self.__flash_instruction.read_sr2
+        return self.__spi.xfer([instruction, 0])[1]
+
+    def set_sr(self, sr1, sr2):
+        self.enable_write()
+        self.__spi.xfer([self.__flash_instruction.write_sr, sr1, sr2])
+
+    def busy_wait(self):
+        while self.get_sr(1) & 0x1:
+            pass
+
+    def enable_write(self):
+        self.__spi.xfer([self.__flash_instruction.write_enable])
 
     def read_page(self, page):
         address = page * self.__flash_page_size
@@ -39,14 +54,13 @@ class RaspiSPIFlashHandle(RaspiIOHandle):
         address = page * self.__flash_page_size
         cmd = [self.__flash_instruction.page_write, (address >> 16) & 0xff, (address >> 8) & 0xff, address & 0xff]
         # First enable write
-        self.__spi.xfer([self.__flash_instruction.write_enable])
+        self.enable_write()
 
         # Second write page data
         self.__spi.xfer(cmd + data)
 
         # Wait done
-        while self.get_sr() & 0x1:
-            pass
+        self.busy_wait()
 
     async def open(self, ws, data):
         flash = SPIFlashDevice(**data)
@@ -74,17 +88,22 @@ class RaspiSPIFlashHandle(RaspiIOHandle):
         data = self.__spi.xfer([self.__flash_instruction.read_id, 0, 0, 0])
         return data[1], data[2] << 8 | data[3]
 
-    async def erase(self, ws, data):
-        # First enable write
-        self.__spi.xfer([self.__flash_instruction.write_enable])
+    async def status(self, ws, data):
+        return self.get_sr(2) << 8 | self.get_sr(1)
 
-        # Second erase chip
+    async def erase(self, ws, data):
+        # First clear block protection bit
+        sr1 = self.get_sr(1)
+        sr2 = self.get_sr(2)
+        sr1 &= ~self.BLOCK_PROTECTION_BITS_MASK
+        self.set_sr(sr1, sr2)
+
+        # Second enable write and erase chip
+        self.enable_write()
         self.__spi.xfer([self.__flash_instruction.chip_erase])
 
         # Final wait chip erase done
-        while self.get_sr() & 0x1:
-            pass
-
+        self.busy_wait()
         return True
 
     async def read_chip(self, ws, data):
@@ -127,4 +146,22 @@ class RaspiSPIFlashHandle(RaspiIOHandle):
             start = page * self.__flash_page_size
             self.write_page(page, chip_data[start: start + self.__flash_page_size])
 
+        return True
+
+    async def hardware_write_protection(self, ws, data):
+        protection = SPIFlashProtection(**data)
+        sr1 = self.get_sr(1)
+        sr2 = self.get_sr(2)
+
+        # Enable SRP1, SRP0 = (0, 1)
+        if protection.enable:
+            sr1 |= (1 << self.SRP0_BIT)
+            sr2 &= ~(1 << self.SRP1_BIT)
+        # Disable SRP1, SRP0 = (0, 0)
+        else:
+            sr1 &= ~(1 << self.SRP0_BIT)
+            sr2 &= ~(1 << self.SRP1_BIT)
+
+        # Write to status register
+        self.set_sr(sr1, sr2)
         return True
