@@ -187,6 +187,4 @@ class RaspiGPIOSPIFlashHandle(RaspiIOHandle):
             start = page * self.__flash_page_size
             self.write_page(page, chip_data[start: start + self.__flash_page_size])
 
-        # Enable write protection
-        self.set_sr(self.get_sr() | self.BP_MASK)
         return True
