@@ -25,7 +25,14 @@ Raspberry Pi [raspi-io](https://github.com/amaork/raspi-io) server
 2. Second install requires: [raspi_io](https://github.com/amaork/raspi-io): 
 
     ```bash
+    # Install raspi-io
     $ sudo pip3.5 install git+https://github.com/amaork/raspi-io.git
+    
+    # Install pylibi2c
+    $ sudo pip3.5 install git+https://github.com/amaork/libi2c.git
+    
+    # Install pylibmmal
+    $ sudo pip3.5 install git+https://github.com/amaork/pylibmmal.git
     ```
 
 3. Finally install raspi_ios:
