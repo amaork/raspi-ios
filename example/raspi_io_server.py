@@ -12,6 +12,7 @@ if __name__ == "__main__":
         server.register(RaspiGPIOHandle)
         server.register(RaspiQueryHandle)
         server.register(RaspiSerialHandle)
+        server.register(RaspiUpdateHandle)
         server.register(RaspiMmalGraphHandle)
         server.register(RaspiTVServiceHandle)
         server.register(RaspiSPIFlashHandle)

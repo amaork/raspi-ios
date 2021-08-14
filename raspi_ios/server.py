@@ -6,10 +6,10 @@ import websocket
 import websockets
 import multiprocessing
 import concurrent.futures
-from raspi_io.core import DEFAULT_PORT
-
-from .core import RaspiIOHandle, RaspiAckMsg
 from urllib.parse import urlparse
+from raspi_io.core import DEFAULT_PORT, RaspiAckMsg
+
+from .core import RaspiIOHandle
 __all__ = ['RaspiIOServer']
 
 
@@ -121,11 +121,12 @@ class RaspiIOServer(object):
                 io_handle = self.__route.get(url.path[1:])
                 if not issubclass(io_handle, RaspiIOHandle):
                     raise AttributeError
+
                 # Create a RaspiIOHandle instance process require
                 await io_handle.create_instance().process(ws, path)
 
-            except (AttributeError, TypeError):
-                error = RaspiAckMsg(ack=False, data="Error: do not registered {!r}".format(path))
+            except (AttributeError, TypeError) as e:
+                error = RaspiAckMsg(ack=False, data="Error: {}({!r})".format(e, path))
                 await ws.send(error.dumps())
             except websockets.ConnectionClosed:
                 pass
