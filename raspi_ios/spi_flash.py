@@ -130,20 +130,8 @@ class RaspiSPIFlashHandle(RaspiIOHandle):
         return True
 
     async def write_chip(self, ws, data):
-        chip_data = bytes()
         header = RaspiBinaryDataHeader(**data)
-
-        # First receive chip binary data
-        for i in range(header.slices):
-            temp = await ws.recv()
-            chip_data += temp
-
-        # Second check data size and md5 checksum
-        if len(chip_data) != header.size or len(chip_data) != self.__flash_chip_size:
-            raise ValueError("data size do not matched")
-
-        if hashlib.md5(chip_data).hexdigest() != header.md5:
-            raise ValueError("data md5 checksum do not matched")
+        chip_data = await self.receive_binary_data(ws, header)
 
         # Convert data to list
         chip_data = list(chip_data)

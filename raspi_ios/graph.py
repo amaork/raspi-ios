@@ -33,29 +33,12 @@ class RaspiMmalGraphHandle(RaspiIOHandle):
         return True
 
     async def open(self, ws, data):
-        graph_data = bytes()
-        header = RaspiBinaryDataHeader(**data)
-
-        # Receive graph binary data
-        for i in range(header.slices):
-            temp = await ws.recv()
-            graph_data += temp
-
-        # Check graph size
-        if len(graph_data) != header.size:
-            raise ValueError("data size do not matched")
-
-        # Check graph md5
-        if hashlib.md5(graph_data).hexdigest() != header.md5:
-            raise ValueError("data md5 checksum do not matched")
-
         # Save graph to a temporary file
-        file_path = os.path.join("/tmp", "{}.{}".format(header.md5, header.format))
-        with open(file_path, "wb") as fp:
-            fp.write(graph_data)
+        file_path = await self.receive_binary_file(ws, data)
 
         # Display graph via mmal
         self.__graph.open(file_path)
+
         # Remove graph
         os.remove(file_path)
         return True

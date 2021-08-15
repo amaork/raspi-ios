@@ -101,7 +101,7 @@ class RaspiIOHandle(object):
         except (ValueError, IOError) as e:
             raise RuntimeError('Receive file failed: {}'.format(e))
 
-        return True
+        return os.path.join("/tmp", "{}.{}".format(header.md5, header.format))
 
     @staticmethod
     async def receive_binary_data(ws, header, save_as_file=False):
