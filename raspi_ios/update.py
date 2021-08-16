@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
 import os
 import json
-import time
-
 import psutil
 import codecs
 import hashlib
 import tarfile
 import requests
 import ipaddress
+import threading
 import concurrent.futures
 from pyquery import PyQuery
 from contextlib import closing
@@ -400,6 +399,7 @@ class GogsRequest(HttpRequest):
 class RaspiUpdateHandle(RaspiIOHandle):
     PATH = __name__.split('.')[-1]
     RELEASE_FILE_NAME = 'release.json'
+    IO_SERVER_NAME = "raspi_io_server"
     CATCH_EXCEPTIONS = (ValueError, IndexError, RuntimeError, PermissionError, OSError, HttpRequestException)
 
     def __init__(self):
@@ -414,15 +414,20 @@ class RaspiUpdateHandle(RaspiIOHandle):
         try:
             # Killall app first
             app_name = os.path.splitext(release_info.get("name"))[0]
-            os.system("killall {}".format(app_name))
+            if app_name != self.IO_SERVER_NAME:
+                os.system("killall {}".format(app_name))
 
             # First decompress software
             src = os.path.join(self.TEMP_DIR, release_info.get('name'))
-            tar = tarfile.open(src, 'r:bz2')
-            tar.extractall(update_path)
-            tar.close()
+            if os.path.splitext(src)[-1] == '.bz2':
+                tar = tarfile.open(src, 'r:bz2')
+                tar.extractall(update_path)
+                tar.close()
+            else:
+                os.system("cp {} {}".format(src, update_path))
 
             # Check if app is success installed
+            os.system("sync")
             app_path = os.path.join(update_path, app_name)
             if not os.path.isfile(app_path):
                 raise RuntimeError("Do not found app in update package")
@@ -434,8 +439,13 @@ class RaspiUpdateHandle(RaspiIOHandle):
             except json.JSONDecodeError as e:
                 raise RuntimeError("{}".format(e))
 
-            # Launch app
+            # Make app executable
             os.system("chmod u+x {}".format(app_path))
+
+            # Set timer reboot system
+            timer = threading.Timer(3.0, lambda: os.system("sync && reboot"))
+            timer.start()
+
             return release_info
         except (tarfile.TarError, IOError, OSError) as e:
             raise RuntimeError("Decompress software failed: {}".format(e))
