@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 import os
 import json
+import time
+
+import psutil
 import codecs
 import hashlib
 import tarfile
@@ -14,7 +17,7 @@ import xml.etree.ElementTree as XmlElementTree
 from typing import List, Callable, Optional, Dict
 
 from .core import RaspiIOHandle
-from raspi_io.update import UpdateFetch, UpdateDownload, UpdateFromLocal
+from raspi_io.update import UpdateFetch, UpdateDownload, UpdateFromLocal, SoftwareDesc
 __all__ = ['RaspiUpdateHandle']
 
 
@@ -406,13 +409,34 @@ class RaspiUpdateHandle(RaspiIOHandle):
     def get_nodes():
         return [RaspiUpdateHandle.PATH]
 
-    @staticmethod
-    def update_software(src, dest):
-        """Decompress src specified tar package to dest specified directory"""
+    def update_software(self, release_info, update_path):
+        """Decompress release_info specified tar package to update_path specified directory"""
         try:
+            # Killall app first
+            app_name = os.path.splitext(release_info.get("name"))[0]
+            os.system("killall {}".format(app_name))
+
+            # First decompress software
+            src = os.path.join(self.TEMP_DIR, release_info.get('name'))
             tar = tarfile.open(src, 'r:bz2')
-            tar.extractall(dest)
+            tar.extractall(update_path)
             tar.close()
+
+            # Check if app is success installed
+            app_path = os.path.join(update_path, app_name)
+            if not os.path.isfile(app_path):
+                raise RuntimeError("Do not found app in update package")
+
+            # Then save software release info
+            try:
+                with codecs.open(os.path.join(update_path, self.RELEASE_FILE_NAME), "w", "utf-8") as fp:
+                    json.dump(release_info, fp)
+            except json.JSONDecodeError as e:
+                raise RuntimeError("{}".format(e))
+
+            # Launch app
+            os.system("chmod u+x {}".format(app_path))
+            return release_info
         except (tarfile.TarError, IOError, OSError) as e:
             raise RuntimeError("Decompress software failed: {}".format(e))
 
@@ -474,8 +498,7 @@ class RaspiUpdateHandle(RaspiIOHandle):
             raise RuntimeError("Download failed: {}".format(result))
 
         release_info = self.verify_software(self.TEMP_DIR)
-        self.update_software(os.path.join(self.TEMP_DIR, release_info.get('name')), download.path)
-        return release_info
+        return self.update_software(release_info, download.path)
 
     async def update_from_local(self, ws, data):
         update = UpdateFromLocal(**data)
@@ -497,5 +520,30 @@ class RaspiUpdateHandle(RaspiIOHandle):
 
         # Verify software
         release_info = self.verify_software(self.TEMP_DIR)
-        self.update_software(os.path.join(self.TEMP_DIR, release_info.get('name')), update.update_path)
-        return release_info
+        return self.update_software(release_info, update.update_path)
+
+    async def get_software_version(self, ws, data):
+        desc = SoftwareDesc(**data)
+
+        app_file = os.path.join(desc.install_path, desc.name)
+        release_file = os.path.join(desc.install_path, self.RELEASE_FILE_NAME)
+
+        if not os.path.isfile(app_file):
+            raise RuntimeError("Do not found app: {}".format(app_file))
+
+        if not os.path.isfile(release_file):
+            raise RuntimeError("Do not found release file: {}".format(release_file))
+
+        try:
+            with codecs.open(release_file, "r", "utf-8") as fp:
+                release_info = json.load(fp)
+
+            return dict(name=desc.name,
+                        version=release_info['version'],
+                        release_date=release_info['date'],
+                        md5=hashlib.md5(open(app_file, 'rb').read()).hexdigest(),
+                        state="Running" if desc.name in (p.name() for p in psutil.process_iter()) else "Stop")
+        except KeyError as e:
+            raise RuntimeError("Release file format error: {}".format(e))
+        except json.JSONDecodeError as e:
+            raise RuntimeError("Load release file error: {}".format(e))

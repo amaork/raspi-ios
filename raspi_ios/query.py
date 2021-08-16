@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 import os
 import glob
+from .version import version
 from .core import RaspiIOHandle
-from raspi_io.query import QueryDevice, QueryHardware
+from raspi_io.query import QueryDevice, QueryHardware, QueryVersion
 __all__ = ['RaspiQueryHandle']
 
 
@@ -31,6 +32,13 @@ class RaspiQueryHandle(RaspiIOHandle):
     def glob_query(keyword):
         return glob.glob(keyword)
 
+    async def query_version(self, ws, data):
+        ver = QueryVersion(**data)
+        ver.server = version
+        ver = ver.dict
+        ver.pop('handle')
+        return ver
+
     async def query_hardware(self, ws, data):
         query = QueryHardware(**data)
         if query.query == QueryHardware.HARDWARE:
@@ -42,7 +50,7 @@ class RaspiQueryHandle(RaspiIOHandle):
         elif query.query == QueryHardware.ETHERNET:
             if query.params not in self.awk_query("ifconfig -s -a", "\ ", 1).split("\n")[1:]:
                 raise ValueError("Unknown ethernet interface:{}".format(query.params))
-            return self.awk_query("ifconfig", query.params, 5)
+            return self.awk_query("ifconfig {}".format(query.params), "netmask", 2)
         else:
             raise ValueError("Unknown hardware query")
 
@@ -50,7 +58,8 @@ class RaspiQueryHandle(RaspiIOHandle):
         query = QueryDevice(**data)
         if query.query == QueryDevice.ETH:
             interfaces = self.awk_query("ifconfig -s -a", "\ ", 1).split("\n")[1:]
-            interfaces.remove("lo")
+            if "lo" in interfaces:
+                interfaces.remove("lo")
             return interfaces
         elif query.query == QueryDevice.I2C:
             return self.glob_query("/dev/i2c-*")
