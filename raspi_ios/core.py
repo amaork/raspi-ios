@@ -4,6 +4,7 @@ import json
 import base64
 import hashlib
 import websockets
+from threading import Timer
 from collections import ChainMap
 from raspi_io.core import RaspiAckMsg, RaspiMsgDecodeError, RaspiBinaryDataHeader
 __all__ = ['RaspiIOHandle']
@@ -41,6 +42,11 @@ class RaspiIOHandle(object):
         # Convert b64 string to bytes
         # Python2 base64 after encode is str, python3 after encode is bytes()
         return base64.b64decode(data[2:-1]) if data.startswith("b'") and data.endswith("'") else base64.b64decode(data)
+
+    @staticmethod
+    def reboot_system(delay):
+        timer = Timer(delay, lambda: os.system("sync && reboot"))
+        timer.start()
 
     @classmethod
     def create_instance(cls):

@@ -16,6 +16,7 @@ import xml.etree.ElementTree as XmlElementTree
 from typing import List, Callable, Optional, Dict
 
 from .core import RaspiIOHandle
+from .server import register_handle
 from raspi_io.update import UpdateFetch, UpdateDownload, UpdateFromLocal, SoftwareDesc
 __all__ = ['RaspiUpdateHandle']
 
@@ -396,6 +397,7 @@ class GogsRequest(HttpRequest):
         ret.raise_for_status()
 
 
+@register_handle
 class RaspiUpdateHandle(RaspiIOHandle):
     PATH = __name__.split('.')[-1]
     RELEASE_FILE_NAME = 'release.json'
@@ -443,9 +445,7 @@ class RaspiUpdateHandle(RaspiIOHandle):
             os.system("chmod u+x {}".format(app_path))
 
             # Set timer reboot system
-            timer = threading.Timer(3.0, lambda: os.system("sync && reboot"))
-            timer.start()
-
+            self.reboot_system(3.0)
             return release_info
         except (tarfile.TarError, IOError, OSError) as e:
             raise RuntimeError("Decompress software failed: {}".format(e))

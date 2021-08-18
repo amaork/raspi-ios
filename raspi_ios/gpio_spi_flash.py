@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 import time
-import hashlib
 import RPi.GPIO as GPIO
 from .core import RaspiIOHandle
+from .server import register_handle
 from raspi_io.gpio_spi_flash import GPIOSPIFlashDevice
 from raspi_io.spi_flash import SPIFlashInstruction, SPIFlashWriteStatus
 from raspi_io.core import get_binary_data_header, DATA_TRANSFER_BLOCK_SIZE, RaspiBinaryDataHeader
 __all__ = ['RaspiGPIOSPIFlashHandle']
 
 
+@register_handle
 class RaspiGPIOSPIFlashHandle(RaspiIOHandle):
     BP_MASK = 0x3c
     FRAME_MASK = 0xff

@@ -2,11 +2,13 @@
 import uuid
 import RPi.GPIO as GPIO
 from .core import RaspiIOHandle
+from .server import register_handle
 from raspi_io.gpio import GPIOMode, GPIOSetup, GPIOCleanup, GPIOCtrl, GPIOChannel, \
     GPIOSoftPWM, GPIOSoftPWMCtrl, GPIOSoftSPI, GPIOSoftSPIXfer, GPIOSoftSPIRead, GPIOSoftSPIWrite
 __all__ = ['RaspiGPIOHandle']
 
 
+@register_handle
 class RaspiGPIOHandle(RaspiIOHandle):
     IO_RES = set()
     PATH = __name__.split('.')[-1]

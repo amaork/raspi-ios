@@ -10,7 +10,19 @@ from urllib.parse import urlparse
 from raspi_io.core import DEFAULT_PORT, RaspiAckMsg
 
 from .core import RaspiIOHandle
-__all__ = ['RaspiIOServer']
+__all__ = ['RaspiIOServer', 'register_handle', 'get_registered_handles']
+
+__REGISTERED_HANDLES = set()
+
+
+def register_handle(cls):
+    if issubclass(cls, RaspiIOHandle):
+        __REGISTERED_HANDLES.add(cls)
+    return cls
+
+
+def get_registered_handles():
+    return set(__REGISTERED_HANDLES)
 
 
 class RaspiIOServer(object):

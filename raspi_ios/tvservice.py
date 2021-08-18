@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 from pylibmmal import TVService
 from .core import RaspiIOHandle
+from .server import register_handle
 from raspi_io.tvservice import TVPower, TVStatus, TVGetModes, TVSetExplicit
 __all__ = ['RaspiTVServiceHandle']
 
 
+@register_handle
 class RaspiTVServiceHandle(RaspiIOHandle):
     __tv = None
     PATH = __name__.split('.')[-1]

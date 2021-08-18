@@ -2,10 +2,12 @@
 import glob
 import pylibi2c
 from .core import RaspiIOHandle
+from .server import register_handle
 from raspi_io.i2c import I2CRead, I2CWrite, I2CDevice
 __all__ = ['RaspiI2CHandle']
 
 
+@register_handle
 class RaspiI2CHandle(RaspiIOHandle):
     PATH = __name__.split('.')[-1]
     CATCH_EXCEPTIONS = (TypeError, ValueError, RuntimeError, AttributeError, IOError)

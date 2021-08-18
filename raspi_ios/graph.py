@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 import os
-import hashlib
-from pylibmmal import MmalGraph, LCD, HDMI
 from .core import RaspiIOHandle
-from raspi_io.core import RaspiBinaryDataHeader
+from .server import register_handle
+from pylibmmal import MmalGraph, LCD, HDMI
 from raspi_io.graph import GraphInit, GraphClose, GraphProperty
 __all__ = ['RaspiMmalGraphHandle']
 
 
+@register_handle
 class RaspiMmalGraphHandle(RaspiIOHandle):
     __graph = None
     PATH = __name__.split('.')[-1]
@@ -44,7 +44,7 @@ class RaspiMmalGraphHandle(RaspiIOHandle):
         return True
 
     async def close(self, ws, data):
-        req = GraphClose(**data)
+        GraphClose(**data)
         if self.__graph.is_open:
             self.__graph.close()
 

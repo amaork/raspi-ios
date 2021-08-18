@@ -2,10 +2,12 @@
 import glob
 import spidev
 from .core import RaspiIOHandle
+from .server import register_handle
 from raspi_io.spi import SPIDevice, SPIClose, SPIRead, SPIWrite, SPIXfer, SPIXfer2
 __all__ = ['RaspiSPIHandle']
 
 
+@register_handle
 class RaspiSPIHandle(RaspiIOHandle):
     PATH = __name__.split('.')[-1]
     CATCH_EXCEPTIONS = (IOError, ValueError, RuntimeError, IOError, AttributeError)
@@ -45,7 +47,7 @@ class RaspiSPIHandle(RaspiIOHandle):
         return True
 
     async def close(self, ws, data):
-        req = SPIClose(**data)
+        SPIClose(**data)
         self.__spi.close()
         return True
 

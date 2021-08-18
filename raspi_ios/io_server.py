@@ -1,17 +1,10 @@
 # -*- coding: utf-8 -*-
-from . import *
+from .server import RaspiIOServer, get_registered_handles
 
 
 if __name__ == "__main__":
     server = RaspiIOServer()
-    server.register(RaspiI2CHandle)
-    server.register(RaspiSPIHandle)
-    server.register(RaspiGPIOHandle)
-    server.register(RaspiQueryHandle)
-    server.register(RaspiSerialHandle)
-    server.register(RaspiUpdateHandle)
-    server.register(RaspiTVServiceHandle)
-    server.register(RaspiMmalGraphHandle)
-    server.register(RaspiSPIFlashHandle)
-    server.register(RaspiGPIOSPIFlashHandle)
+    for handle in get_registered_handles():
+        server.register(handle)
+
     server.run_forever()

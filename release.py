@@ -17,7 +17,7 @@ if __name__ == '__main__':
             md5=hashlib.md5(open(path, "rb").read()).hexdigest(),
             name=os.path.basename(path),
             size=os.path.getsize(path),
-            version=version,
+            version=float(version),
             desc="",
             url=""
         )

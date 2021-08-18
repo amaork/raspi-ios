@@ -3,10 +3,12 @@ import glob
 import fcntl
 import serial
 from .core import RaspiIOHandle
+from .server import register_handle
 from raspi_io.serial import SerialInit, SerialClose, SerialRead, SerialWrite, SerialFlush, SerialBaudrate
 __all__ = ['RaspiSerialHandle']
 
 
+@register_handle
 class RaspiSerialHandle(RaspiIOHandle):
     PATH = __name__.split('.')[-1]
     CATCH_EXCEPTIONS = (serial.SerialException, ValueError, RuntimeError, BlockingIOError)

@@ -2,13 +2,14 @@
 import glob
 import time
 import spidev
-import hashlib
 from .core import RaspiIOHandle
+from .server import register_handle
 from raspi_io.spi_flash import SPIFlashInstruction, SPIFlashDevice, SPIFlashWriteStatus
 from raspi_io.core import get_binary_data_header, DATA_TRANSFER_BLOCK_SIZE, RaspiBinaryDataHeader
 __all__ = ['RaspiSPIFlashHandle']
 
 
+@register_handle
 class RaspiSPIFlashHandle(RaspiIOHandle):
     BP_MASK = 0x3C
     PATH = __name__.split('.')[-1]

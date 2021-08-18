@@ -3,10 +3,12 @@ import os
 import glob
 from .version import version
 from .core import RaspiIOHandle
-from raspi_io.query import QueryDevice, QueryHardware, QueryVersion
+from .server import register_handle
+from raspi_io.query import QueryDevice, QueryHardware, QueryVersion, RebootSystem
 __all__ = ['RaspiQueryHandle']
 
 
+@register_handle
 class RaspiQueryHandle(RaspiIOHandle):
     PATH = __name__.split('.')[-1]
     CATCH_EXCEPTIONS = (ValueError, RuntimeError)
@@ -31,6 +33,10 @@ class RaspiQueryHandle(RaspiIOHandle):
     @staticmethod
     def glob_query(keyword):
         return glob.glob(keyword)
+
+    async def reboot(self, ws, data):
+        reboot = RebootSystem(**data)
+        return self.reboot_system(reboot.delay)
 
     async def query_version(self, ws, data):
         ver = QueryVersion(**data)
