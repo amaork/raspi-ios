@@ -45,7 +45,7 @@ class RaspiIOHandle(object):
 
     @staticmethod
     def reboot_system(delay):
-        timer = Timer(delay, lambda: os.system("sync && reboot"))
+        timer = Timer(delay, lambda: os.system("sync && sleep 3 && reboot"))
         timer.start()
 
     @classmethod
@@ -69,14 +69,13 @@ class RaspiIOHandle(object):
 
                 # Request process
                 if callable(handle):
-
                     # Catch Runtime error
                     try:
                         ack = await handle(self, ws=ws, data=request)
                     except self.CATCH_EXCEPTIONS as err:
                         nak = 'Process request error:{}'.format(err)
                 else:
-                    nak = "{0:s} unknown request:{1:s}".format(path, request)
+                    nak = "{} unknown request:{}".format(path, request)
 
             except (RaspiMsgDecodeError, json.JSONDecodeError) as err:
                 nak = 'Parse request error:{}!'.format(err)

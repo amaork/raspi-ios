@@ -7,7 +7,6 @@ import hashlib
 import tarfile
 import requests
 import ipaddress
-import threading
 import concurrent.futures
 from pyquery import PyQuery
 from contextlib import closing
@@ -17,8 +16,10 @@ from typing import List, Callable, Optional, Dict
 
 from .core import RaspiIOHandle
 from .server import register_handle
-from raspi_io.update import UpdateFetch, UpdateDownload, UpdateFromLocal, SoftwareDesc
-__all__ = ['RaspiUpdateHandle']
+from raspi_io.core import RaspiMsgDecodeError
+from raspi_io.app_manager import AppDescription, InstallApp, UninstallApp, \
+    AppState, GetAppState, FetchUpdate, OnlineUpdate, LocalUpdate
+__all__ = ['RaspiAppManagerHandle']
 
 
 class HttpRequestException(Exception):
@@ -398,20 +399,111 @@ class GogsRequest(HttpRequest):
 
 
 @register_handle
-class RaspiUpdateHandle(RaspiIOHandle):
+class RaspiAppManagerHandle(RaspiIOHandle):
     PATH = __name__.split('.')[-1]
+    APP_ROOT = '/opt/raspi_io_apps'
     RELEASE_FILE_NAME = 'release.json'
-    IO_SERVER_NAME = "raspi_io_server"
-    CATCH_EXCEPTIONS = (ValueError, IndexError, RuntimeError, PermissionError, OSError, HttpRequestException)
+    DESCRIPTION_FILE_NAME = 'description.json'
+
+    IO_SERVER_NAME, IO_SERVER_PATH = "raspi_io_server", "/usr/local/sbin"
+    APP_LAUNCH_SCRIPT_DIR = os.path.join(IO_SERVER_PATH, 'scripts')
+
+    CATCH_EXCEPTIONS = (ValueError, IndexError, AttributeError,
+                        RuntimeError, PermissionError, OSError, HttpRequestException)
 
     def __init__(self):
-        super(RaspiUpdateHandle, self).__init__()
+        super(RaspiAppManagerHandle, self).__init__()
 
     @staticmethod
     def get_nodes():
-        return [RaspiUpdateHandle.PATH]
+        return [RaspiAppManagerHandle.PATH]
 
-    def update_software(self, release_info, update_path):
+    def check_app(self, app_name):
+        """Check app env
+
+        :param app_name: app_name
+        :return: success return app description info failed raise exception
+        """
+        path = self.get_app_dir(app_name)
+
+        try:
+            with codecs.open(os.path.join(path, self.DESCRIPTION_FILE_NAME), "r", "utf-8") as fp:
+                app_desc = AppDescription(**json.load(fp))
+
+            if app_name != app_desc.app_name:
+                raise RuntimeError('App name mismatching')
+
+            return app_desc
+        except FileNotFoundError:
+            raise RuntimeError('App {!r} is not exist'.format(app_name))
+        except (TypeError, RaspiMsgDecodeError) as e:
+            raise RuntimeError('Load app desc file error: {}'.format(e))
+
+    def get_app_dir(self, app_name):
+        return os.path.join(self.APP_ROOT, app_name)
+
+    def get_app_size(self, app_name):
+        total_size = 0
+        for dir, _, filenames in os.walk(self.get_app_dir(app_name)):
+            for f in filenames:
+                name = os.path.join(dir, f)
+                if not os.path.islink(name):
+                    total_size += os.path.getsize(name)
+
+        return total_size
+
+    def decompress_package(self, package):
+        try:
+            # Unpack local update package
+            fmt = os.path.splitext(package)[-1][1:]
+            with tarfile.open(os.path.join(self.TEMP_DIR, package), 'r:{}'.format(fmt)) as tar:
+                tar.extractall(self.TEMP_DIR)
+
+            return self.TEMP_DIR
+        except (tarfile.TarError, IOError, OSError) as e:
+            raise RuntimeError("Decompress package {!r} failed: {}".format(package, e))
+
+    def verify_app(self, download_path, exe_name):
+        """Verify app success return software release info
+
+        :param download_path: app data file and release json file file path
+        :param exe_name: app executable name
+        :return: app release json
+        """
+        error_msg = "Verify app failed: {error}"
+        release_json_file = os.path.join(download_path, self.RELEASE_FILE_NAME)
+
+        try:
+            # Get app release json file
+            with codecs.open(release_json_file, "r", "utf-8") as fp:
+                release_info = json.load(fp)
+        except FileNotFoundError:
+            raise RuntimeError(error_msg.format(error="do not found {}".format(release_json_file)))
+        except json.JSONDecodeError as err:
+            raise RuntimeError(error_msg.format(error="decode {!r} failed: {}".format(release_json_file, err)))
+
+        # According to release json file verify data package md5 checksum
+        data_package = release_info.get("name")
+        release_data_file = os.path.join(download_path, data_package)
+
+        try:
+            if hashlib.md5(open(release_data_file, "rb").read()).hexdigest() != release_info.get("md5"):
+                raise RuntimeError(error_msg.format(error="{!r} md5sum mismatching".format(data_package)))
+        except FileNotFoundError:
+            raise RuntimeError(error_msg.format(error="do not found: {}".format(data_package)))
+
+        # Verify app executable file is in the package
+        if os.path.splitext(release_data_file)[-1] == '.bz2':
+            with tarfile.open(release_data_file, 'r:bz2') as tar:
+                if exe_name not in [os.path.basename(x) for x in tar.getnames()]:
+                    raise RuntimeError(error_msg.format(error="do not found executable file"))
+        else:
+            if exe_name != os.path.basename(release_data_file):
+                raise RuntimeError(error_msg.format(error="do not found executable file"))
+
+        return release_info
+
+    def update_app(self, release_info, update_path):
         """Decompress release_info specified tar package to update_path specified directory"""
         try:
             # Killall app first
@@ -450,56 +542,69 @@ class RaspiUpdateHandle(RaspiIOHandle):
         except (tarfile.TarError, IOError, OSError) as e:
             raise RuntimeError("Decompress software failed: {}".format(e))
 
-    def verify_software(self, download_path):
-        """Verify software success return software release info
+    async def install_app(self, ws, data):
+        install = InstallApp(**data)
+        app_desc = AppDescription(**install.app_desc)
+        app_dir = self.get_app_dir(app_desc.app_name)
+        install_package = os.path.join(self.TEMP_DIR, install.package)
 
-        :param download_path: software data file and release json file file path
-        :return: software release json
-        """
-        release_json_file = os.path.join(download_path, self.RELEASE_FILE_NAME)
+        if not os.path.isfile(install_package):
+            raise RuntimeError("App install package: {!r} do not exist".format(install_package))
 
-        # Get software release json file
+        if os.path.isdir(app_dir):
+            raise RuntimeError("App {!r} already installed, please check".format(app_desc.app_name))
+
+        path = self.decompress_package(install_package)
+        release_info = self.verify_app(path, app_desc.exe_name)
+
+        # Create app install dir and create boot script and description file
+        os.makedirs(self.APP_LAUNCH_SCRIPT_DIR, mode=0o755, exist_ok=True)
+        os.makedirs(self.get_app_dir(app_desc.app_name), mode=0o755, exist_ok=True)
+
         try:
-            with codecs.open(release_json_file, "r", "utf-8") as fp:
-                release_info = json.load(fp)
-        except FileNotFoundError:
-            raise RuntimeError("Verify software failed, do not found: {}".format(release_json_file))
-        except json.JSONDecodeError as err:
-            raise RuntimeError("Verify software failed, decode {!r} failed: {}".format(release_json_file, err))
+            with codecs.open(os.path.join(app_dir, self.DESCRIPTION_FILE_NAME), "w", "utf-8") as fp:
+                json.dump(app_desc.dict, fp)
+        except json.JSONDecodeError as e:
+            raise RuntimeError("{}".format(e))
 
-        data_package = release_info.get("name")
-        release_data_file = os.path.join(download_path, data_package)
+        if app_desc.autostart:
+            launch_script = os.path.join(self.APP_LAUNCH_SCRIPT_DIR, "{}.sh".format(app_desc.app_name))
+            with open(launch_script, "w") as fp:
+                fp.write('#!/bin/sh\n\n')
+                fp.write("cd {} && ./{} {} &\n".format(app_dir, app_desc.exe_name, app_desc.boot_args))
 
-        # According to release json file verify data package md5 checksum
-        try:
-            if hashlib.md5(open(release_data_file, "rb").read()).hexdigest() == release_info.get("md5"):
-                return release_info
-        except FileNotFoundError:
-            raise RuntimeError("Verify software failed, do not found: {}".format(data_package))
+            os.system("chmod u+x {}".format(launch_script))
+        return self.update_app(release_info, app_dir)
 
-        raise RuntimeError("Verify software failed, {!r} md5sum do not matched".format(data_package))
+    async def uninstall_app(self, ws, data):
+        uninstall = UninstallApp(**data)
+        app_desc = self.check_app(uninstall.app_name)
 
-    async def fetch(self, ws, data):
-        fetch = UpdateFetch(**data)
+        os.system("rm -rf {}".format(self.get_app_dir(app_desc.app_name)))
+        os.system("rm {}".format(os.path.join(self.APP_LAUNCH_SCRIPT_DIR, "{}.sh".format(app_desc.app_name))))
+        return True
+
+    async def fetch_update(self, ws, data):
+        fetch = FetchUpdate(**data)
         gogs_request = GogsRequest(**fetch.auth)
 
-        releases = gogs_request.get_repo_releases(fetch.name)
+        releases = gogs_request.get_repo_releases(fetch.repo_name)
         if not releases:
             raise RuntimeError("Do not fetch anything, please check name")
 
         return releases[0].dict if fetch.newest else [r.dict for r in releases]
 
-    async def download(self, ws, data):
-        download = UpdateDownload(**data)
-        gogs_request = GogsRequest(**download.auth)
+    async def online_update(self, ws, data):
+        update = OnlineUpdate(**data)
+        gogs_request = GogsRequest(**update.auth)
 
-        # Download to unknown path is not security so forbid such operate
-        if not os.path.isdir(download.path):
-            raise RuntimeError("Download path: {!r} is not exist".format(download.path))
+        # Check app first
+        app_desc = self.check_app(update.app_name)
 
         try:
-            release = RepoRelease(**download.release)
-            result = gogs_request.download_package(release.attachment, self.TEMP_DIR, timeout=download.timeout)
+            # Download app release
+            release = RepoRelease(**update.release)
+            result = gogs_request.download_package(release.attachment, self.TEMP_DIR, timeout=update.timeout)
         except Exception as e:
             return RuntimeError("Download failed: {}".format(e))
 
@@ -507,39 +612,32 @@ class RaspiUpdateHandle(RaspiIOHandle):
         if not all(result.values()):
             raise RuntimeError("Download failed: {}".format(result))
 
-        release_info = self.verify_software(self.TEMP_DIR)
-        return self.update_software(release_info, download.path)
+        release_info = self.verify_app(self.TEMP_DIR, app_desc.exe_name)
+        return self.update_app(release_info, self.get_app_dir(update.app_name))
 
-    async def update_from_local(self, ws, data):
-        update = UpdateFromLocal(**data)
+    async def local_update(self, ws, data):
+        update = LocalUpdate(**data)
+        if update.app_name == self.IO_SERVER_NAME:
+            exe_name, update_path = self.IO_SERVER_NAME, self.IO_SERVER_PATH
+        else:
+            update_path = self.get_app_dir(update.app_name)
+            exe_name = self.check_app(update.app_name).exe_name
 
-        if not os.path.isfile(os.path.join(self.TEMP_DIR, update.filename)):
-            raise RuntimeError("Do not found update file: {}".format(update.filename))
+        path = self.decompress_package(update.package)
+        release_info = self.verify_app(path, exe_name)
+        return self.update_app(release_info, update_path)
 
-        if not os.path.isdir(update.update_path):
-            raise RuntimeError("Download path: {!r} is not exist".format(update.update_path))
+    async def get_app_list(self, ws, data):
+        return os.listdir(self.APP_ROOT)
 
-        # Unpack local update package
-        try:
-            fmt = os.path.splitext(update.filename)[-1][1:]
-            tar = tarfile.open(os.path.join(self.TEMP_DIR, update.filename), 'r:{}'.format(fmt))
-            tar.extractall(self.TEMP_DIR)
-            tar.close()
-        except (tarfile.TarError, IOError, OSError) as e:
-            raise RuntimeError("Decompress software failed: {}".format(e))
+    async def get_app_state(self, ws, data):
+        state = GetAppState(**data)
+        app_desc = self.check_app(state.app_name)
 
-        # Verify software
-        release_info = self.verify_software(self.TEMP_DIR)
-        return self.update_software(release_info, update.update_path)
-
-    async def get_software_version(self, ws, data):
-        desc = SoftwareDesc(**data)
-
-        app_file = os.path.join(desc.install_path, desc.name)
-        release_file = os.path.join(desc.install_path, self.RELEASE_FILE_NAME)
-
-        if not os.path.isfile(app_file):
-            raise RuntimeError("Do not found app: {}".format(app_file))
+        app_name = app_desc.app_name
+        app_dir = self.get_app_dir(app_name)
+        app_exe_file = os.path.join(app_dir, app_desc.exe_name)
+        release_file = os.path.join(app_dir, self.RELEASE_FILE_NAME)
 
         if not os.path.isfile(release_file):
             raise RuntimeError("Do not found release file: {}".format(release_file))
@@ -548,11 +646,13 @@ class RaspiUpdateHandle(RaspiIOHandle):
             with codecs.open(release_file, "r", "utf-8") as fp:
                 release_info = json.load(fp)
 
-            return dict(name=desc.name,
-                        version=release_info['version'],
-                        release_date=release_info['date'],
-                        md5=hashlib.md5(open(app_file, 'rb').read()).hexdigest(),
-                        state="Running" if desc.name in (p.name() for p in psutil.process_iter()) else "Stop")
+            state = "Running" if os.path.basename(app_exe_file) in (p.name() for p in psutil.process_iter()) else "Stop"
+
+            return AppState(app_name=app_name,
+                            version=release_info['version'],
+                            release_date=release_info['date'],
+                            size=self.get_app_size(app_name),
+                            md5=hashlib.md5(open(app_exe_file, 'rb').read()).hexdigest(), state=state).dict
         except KeyError as e:
             raise RuntimeError("Release file format error: {}".format(e))
         except json.JSONDecodeError as e:

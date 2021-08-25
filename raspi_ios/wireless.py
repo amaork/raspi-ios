@@ -121,6 +121,8 @@ class RaspiWirelessHandle(RaspiIOHandle):
 
     async def leave_network(self, ws, data):
         leave = LeaveNetwork(**data)
+        if leave.ssid not in self.parser.network_list:
+            raise RuntimeError("Network: {!r} is not exist".format(leave.ssid))
 
         self.parser.delete_network(leave.ssid)
         self.parser.dump(self.get_wap_config_fp())

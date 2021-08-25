@@ -36,7 +36,8 @@ class RaspiQueryHandle(RaspiIOHandle):
 
     async def reboot(self, ws, data):
         reboot = RebootSystem(**data)
-        return self.reboot_system(reboot.delay)
+        self.reboot_system(reboot.delay)
+        return True
 
     async def query_version(self, ws, data):
         ver = QueryVersion(**data)
