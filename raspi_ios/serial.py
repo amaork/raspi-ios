@@ -22,7 +22,7 @@ class RaspiSerialHandle(RaspiIOHandle):
 
     @staticmethod
     def get_nodes():
-        return glob.glob("/dev/ttyS*") + glob.glob("/dev/ttyUSB*")
+        return glob.glob("/dev/ttyS*") + glob.glob("/dev/ttyAMA*") + glob.glob("/dev/ttyUSB*")
 
     async def init(self, ws, data):
         # Parse request

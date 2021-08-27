@@ -2,10 +2,8 @@ import os
 import json
 import stat
 import tarfile
-import pathlib
-import hashlib
-import datetime
 from raspi_ios.version import version
+from raspi_ios.app_manager import GogsSoftwareReleaseDesc
 
 
 if __name__ == '__main__':
@@ -22,19 +20,10 @@ if __name__ == '__main__':
                           '/tmp/rios && cd /tmp/rios && ./raspi_io_server && /usr/local/sbin/boot_apps.sh'
 
     try:
-        desc = dict(
-            date=str(datetime.datetime.fromtimestamp(pathlib.Path(path).stat().st_mtime)),
-            md5=hashlib.md5(open(path, "rb").read()).hexdigest(),
-            name=os.path.basename(path),
-            size=os.path.getsize(path),
-            version=float(version),
-            desc="",
-            url=""
-        )
-
         # Generate release.json
+        desc = GogsSoftwareReleaseDesc.generate(path, version)
         with open(os.path.join(dist, release_file), 'w', encoding='utf-8') as fp:
-            json.dump(desc, fp, indent=4)
+            json.dump(desc.dict, fp, indent=4)
 
         # Generate boot_args.sh
         with open(os.path.join(dist, boot_script), 'w', encoding='utf-8') as fp:

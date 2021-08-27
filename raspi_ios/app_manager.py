@@ -3,8 +3,10 @@ import os
 import json
 import psutil
 import codecs
+import pathlib
 import hashlib
 import tarfile
+import datetime
 import requests
 import ipaddress
 import concurrent.futures
@@ -19,7 +21,7 @@ from .server import register_handle
 from raspi_io.core import RaspiMsgDecodeError
 from raspi_io.app_manager import AppDescription, InstallApp, UninstallApp, \
     AppState, GetAppState, FetchUpdate, OnlineUpdate, LocalUpdate
-__all__ = ['RaspiAppManagerHandle']
+__all__ = ['RaspiAppManagerHandle', 'GogsSoftwareReleaseDesc', 'RepoRelease']
 
 
 class HttpRequestException(Exception):
@@ -398,6 +400,42 @@ class GogsRequest(HttpRequest):
         ret.raise_for_status()
 
 
+class GogsSoftwareReleaseDesc(DynamicObject):
+    _default_path = "release.json"
+    _properties = {'name', 'desc', 'size', 'date', 'md5', 'version', 'url'}
+
+    def check(self):
+        return self.name and self.size and self.md5 and self.url
+
+    @classmethod
+    def default(cls):
+        return GogsSoftwareReleaseDesc(name="", desc="", size=0, date="", md5="", version=0.0, url="")
+
+    @classmethod
+    def generate(cls, path: str, version: float):
+        """
+        Generate #path specified software release desc
+        :param path: software path
+        :param version: software version
+        :return: success return True
+        """
+        try:
+            desc = GogsSoftwareReleaseDesc(
+                date=str(datetime.datetime.fromtimestamp(pathlib.Path(path).stat().st_mtime)),
+                md5=hashlib.md5(open(path, "rb").read()).hexdigest(),
+                name=os.path.basename(path),
+                size=os.path.getsize(path),
+                version=version,
+                desc="",
+                url=""
+            )
+
+            return desc
+        except (OSError, ValueError, DynamicObjectEncodeError, AttributeError) as e:
+            print("Generate {!r} release desc failed: {}".format(path, e))
+            return None
+
+
 @register_handle
 class RaspiAppManagerHandle(RaspiIOHandle):
     PATH = __name__.split('.')[-1]
@@ -444,9 +482,9 @@ class RaspiAppManagerHandle(RaspiIOHandle):
 
     def get_app_size(self, app_name):
         total_size = 0
-        for dir, _, filenames in os.walk(self.get_app_dir(app_name)):
+        for dir_name, _, filenames in os.walk(self.get_app_dir(app_name)):
             for f in filenames:
-                name = os.path.join(dir, f)
+                name = os.path.join(dir_name, f)
                 if not os.path.islink(name):
                     total_size += os.path.getsize(name)
 
@@ -588,11 +626,38 @@ class RaspiAppManagerHandle(RaspiIOHandle):
         fetch = FetchUpdate(**data)
         gogs_request = GogsRequest(**fetch.auth)
 
-        releases = gogs_request.get_repo_releases(fetch.repo_name)
-        if not releases:
+        repo_releases = gogs_request.get_repo_releases(fetch.repo_name)
+        if not repo_releases:
             raise RuntimeError("Do not fetch anything, please check name")
 
-        return releases[0].dict if fetch.newest else [r.dict for r in releases]
+        release_list = list()
+        for release in repo_releases:
+            if not isinstance(release, RepoRelease):
+                continue
+
+            if self.RELEASE_FILE_NAME not in release.attachments():
+                continue
+
+            try:
+                response = gogs_request.section_get(release.get_attachment_url(self.RELEASE_FILE_NAME))
+                if not GogsRequest.is_response_ok(response):
+                    continue
+
+                desc = GogsSoftwareReleaseDesc.default()
+                try:
+                    desc.update(json.loads(response.content))
+                except TypeError:
+                    desc.update(json.loads(response.content.decode()))
+
+                desc.update(DynamicObject(desc=release.html_desc))
+                desc.update(DynamicObject(url=release.get_attachment_url(desc.name)))
+
+                release_list.append((release.dict, desc.dict))
+            except (IndexError, ValueError, AttributeError, DynamicObjectEncodeError) as e:
+                print("{!r} get_releases error {}".format(self.__class__.__name__, e))
+                continue
+
+        return release_list[0] if fetch.newest else release_list
 
     async def online_update(self, ws, data):
         update = OnlineUpdate(**data)

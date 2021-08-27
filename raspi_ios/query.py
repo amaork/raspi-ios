@@ -4,6 +4,7 @@ import glob
 from .version import version
 from .core import RaspiIOHandle
 from .server import register_handle
+from .serial import RaspiSerialHandle
 from raspi_io.query import QueryDevice, QueryHardware, QueryVersion, RebootSystem
 __all__ = ['RaspiQueryHandle']
 
@@ -73,7 +74,7 @@ class RaspiQueryHandle(RaspiIOHandle):
         elif query.query == QueryDevice.SPI:
             return self.glob_query("/dev/spidev*")
         elif query.query == QueryDevice.SERIAL:
-            port_list = self.glob_query("/dev/ttyS*") + self.glob_query("/dev/ttyUSB*")
+            port_list = RaspiSerialHandle.get_nodes()
             return port_list if query.option else list(filter(lambda port: not os.path.islink(port), port_list))
         elif query.query == QueryDevice.FILTER:
             return self.glob_query(os.path.join("/dev", query.filter))
